@@ -16,7 +16,7 @@ class ObjTracker:
 
         results = self.model.track(
             source=frame,
-            presist=True,
+            persist=True,
             classes=cfg.TARGET_CLASSES,
             tracker=tracker_arg,
             verbose=False,
