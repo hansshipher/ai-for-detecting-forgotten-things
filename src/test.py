@@ -18,13 +18,23 @@ def main():
         sys.exit(1)
     
     print("[INFO] Test launch")
+
+    persons = {}
+    bags = {}
+    
+    frame_count = 0
+    SKIP_FRAMES = 3
     
     while True:
         ret, frame = cap.read()
         if not ret:
             break
+
+        frame_count += 1
         
-        persons, bags = tracker.process_frame(frame)
+        if frame_count % SKIP_FRAMES == 0:
+            persons, bags = tracker.process_frame(frame)
+
         output_frame = visualizer.draw(frame, persons, bags)
         
         cv2.imshow("Detection", output_frame)

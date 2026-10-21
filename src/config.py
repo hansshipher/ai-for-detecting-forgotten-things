@@ -2,10 +2,10 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-MODEL_NAME = "yolo26m.pt"
+MODEL_NAME = "yolo26n.pt"
 MODEL_PATH = BASE_DIR / "weights" / MODEL_NAME
 
-VIDEO_PATH = BASE_DIR / "videos" / "video2.avi"
+VIDEO_PATH = BASE_DIR / "videos" / "video1.avi"
 TRACKER_CONFIG = str(BASE_DIR / "configs" / "custom_tracker.yaml")
 
 # !!!!!!!!!!COCO classes!!!!!!!!!!

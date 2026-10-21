@@ -12,26 +12,26 @@ class ObjTracker:
         self.model = YOLO(cfg.MODEL_PATH)
 
     def process_frame(self, frame: cv.Mat) -> Tuple[Dict[int, Tuple[int, int]], Dict[int, Dict[str, Any]]]:
-        tracker_arg = cfg.TRACKER_CONFIG if Path(cfg.TRACKER_CONFIG).exists() else None
-
+        tracker_arg = cfg.TRACKER_CONFIG if cfg.TRACKER_CONFIG is not None and Path(cfg.TRACKER_CONFIG).exists() else None
         results = self.model.track(
             source=frame,
             persist=True,
             classes=cfg.TARGET_CLASSES,
-            tracker=tracker_arg,
+            tracker=cfg.TRACKER_CONFIG,
             verbose=False,
-            conf=0.5
+            conf=0.2,
+            imgsz=800
         )
 
         persons: Dict[int, Tuple[int, int]] = {}
-        bags: Dict[int, Dict[str, Any]]
+        bags: Dict[int, Dict[str, Any]] = {}
 
         r = results[0]
         if r.boxes is None or r.boxes.id is None:
             return persons, bags
 
         boxes = r.boxes.xyxy.cpu().numpy()
-        track_ids = r.boxes.id.cpu().numpy.astype(int)
+        track_ids = r.boxes.id.cpu().numpy().astype(int)
         cls_ids = r.boxes.cls.cpu().numpy().astype(int)
 
         for box, track_id, cls_id in zip(boxes, track_ids, cls_ids):
