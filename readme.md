@@ -77,3 +77,19 @@ python test.py
    ```
 5. **Создайте Pull Request (PR):**
    Зайдите на GitHub, перейдите во вкладку **Pull Request** и создайте запрос на слияние вашей ветки в `main`.
+6. **Закрытие ветки**
+   После закрытия PR(!) выполните следующие действия:
+   * Переключитесь на главную ветку `main`:
+      ``` Bash
+      git checkout main
+      или
+      git switch main
+      ```
+   * Затяните обновленный `main` с GitHub:
+       ``` Bash
+       git pull origin main
+       ```
+   * При необходимости удалите вашу ветку у себя на копьютере:
+       ``` Bash
+       git branch -d feature/nazvanie-zadachi
+       ```
