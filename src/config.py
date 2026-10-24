@@ -2,11 +2,14 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-MODEL_NAME = "yolo26n.pt"
+MODEL_NAME = "yolo26m.pt"
 MODEL_PATH = BASE_DIR / "weights" / MODEL_NAME
 
-VIDEO_PATH = BASE_DIR / "videos" / "video1.avi"
+VIDEO_PATH = BASE_DIR / "videos" / "video3.avi"
+
 TRACKER_CONFIG = str(BASE_DIR / "configs" / "custom_tracker.yaml")
+CONF_THRESHOLD = 0.1
+IMGSZ = 800
 
 # !!!!!!!!!!COCO classes!!!!!!!!!!
 TARGET_CLASSES = [0, 24, 26, 28]
