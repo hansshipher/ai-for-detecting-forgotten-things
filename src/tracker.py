@@ -27,23 +27,13 @@ class ObjTracker:
         if tracker_arg is not None:
             kwargs["tracker"] = tracker_arg
 
-        #results = self.model.track(**kwargs)
-        results = self.model.track(
-            source=frame,
-            persist=True,
-            classes=cfg.TARGET_CLASSES,
-            tracker=cfg.TRACKER_CONFIG,   # <-- Баг: летит путь или None-строка
-            verbose=False,
-            conf=0.2,                      # <-- ХАРДКОД! Не читает cfg.CONF_THRESHOLD
-            imgsz=800                      # <-- ХАРДКОД! Не читает cfg.IMGSZ
-        )
-
+        results = self.model.track(**kwargs)
         persons = {}
         bags = {}
 
         r = results[0]
         if r.boxes is None or r.boxes.id is None:
-            return persons, bags  # Пропускаем кадр, если трекер еще не дал ID
+            return persons, bags
 
         boxes = r.boxes.xyxy.cpu().numpy()
         track_ids = r.boxes.id.cpu().numpy().astype(int)

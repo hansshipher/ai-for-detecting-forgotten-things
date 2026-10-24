@@ -5,15 +5,14 @@ class AbObjDetector:
     def __init__(self, max_missing_frames=45, spatial_threshold=50,
                  person_link_radius=80, person_max_missing=45):
         self.tracked_bags = {}
-        self.max_missing_frames = max_missing_frames      # буфер пропажи сумки
-        self.spatial_threshold = spatial_threshold        # радиус склейки ID сумки
-        self.person_link_radius = person_link_radius      # радиус склейки ID человека
-        self.person_max_missing = person_max_missing      # буфер пропажи человека
-        self.persons_state = {}                           # {lid: {track_id, pos, missing}}
+        self.max_missing_frames = max_missing_frames      
+        self.spatial_threshold = spatial_threshold        
+        self.person_link_radius = person_link_radius      
+        self.person_max_missing = person_max_missing      
+        self.persons_state = {}                           
         self._next_lid = 0
 
     def _link_persons(self, persons):
-        # 1. прямое совпадение track_id -> обновляем позицию, не создаём дубль
         used = set()
         for track_id, pos in persons.items():
             for lid, st in self.persons_state.items():
@@ -22,7 +21,7 @@ class AbObjDetector:
                     st['missing'] = 0
                     used.add(lid)
                     break
-        # 2. новые track_id -> клеим к потерянному lid по близости последней позиции
+
         for track_id, pos in persons.items():
             if any(st['track_id'] == track_id for st in self.persons_state.values()):
                 continue
@@ -42,7 +41,7 @@ class AbObjDetector:
                 self.persons_state[self._next_lid] = {'track_id': track_id, 'pos': pos, 'missing': 0}
                 used.add(self._next_lid)
                 self._next_lid += 1
-        # 3. не обновлённые lid -> считаем пропавшими, чистим по буферу
+
         for lid in list(self.persons_state.keys()):
             if lid not in used:
                 self.persons_state[lid]['missing'] += 1
@@ -59,7 +58,6 @@ class AbObjDetector:
             target_state_key = bag_id
 
             if bag_id not in self.tracked_bags:
-                # склейка ID сумки (твоя логика, без изменений)
                 best_match_id, min_dist = None, float('inf')
                 for existing_id, state in self.tracked_bags.items():
                     old_center = ((state['bbox'][0] + state['bbox'][2]) // 2,
@@ -73,7 +71,6 @@ class AbObjDetector:
                     self.tracked_bags[bag_id] = self.tracked_bags.pop(best_match_id)
                     target_state_key = bag_id
                 else:
-                    # новая сумка: владелец = ближайший логический человек в момент появления
                     owner_lid, min_d = None, float('inf')
                     for lid, st in self.persons_state.items():
                         if st['missing'] != 0:
@@ -93,7 +90,6 @@ class AbObjDetector:
             state['missing_count'] = 0
             matched_bag_ids.add(target_state_key)
 
-            # SAFETY = рядом ЕГО владелец (не любой прохожий)
             owner_near = False
             olid = state['owner_lid']
             if olid is not None and olid in self.persons_state:
