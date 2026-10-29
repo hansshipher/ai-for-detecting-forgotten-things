@@ -42,9 +42,9 @@ class ObjTracker:
         for box, track_id, cls_id in zip(boxes, track_ids, cls_ids):
             x1, y1, x2, y2 = map(int, box)
             center = (int((x1 + x2) / 2), int((y1 + y2) / 2))
-            if cls_id == 0:
+            if cls_id == cfg.PERSON_CLASS:
                 persons[track_id] = center
-            elif cls_id in cfg.BAG_CLASSES:
+            elif cls_id == cfg.BAG_CLASS:
                 bags[track_id] = {"center": center, "bbox": (x1, y1, x2, y2)}
 
         return persons, bags
