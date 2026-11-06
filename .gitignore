@@ -221,3 +221,14 @@ __marimo__/
 
 # NN models
 weights/
+dataset/
+*.yaml
+README.dataset.txt
+README.roboflow.txt
+train.py
+test_nn.py
+runs/
+fix_labels.py
+
+# Local working notes
+mem/
