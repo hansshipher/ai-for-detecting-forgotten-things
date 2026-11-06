@@ -228,3 +228,7 @@ README.roboflow.txt
 train.py
 test_nn.py
 runs/
+fix_labels.py
+
+# Local working notes
+mem/
