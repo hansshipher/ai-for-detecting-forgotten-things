@@ -12,8 +12,8 @@
   - медианный размер бокса сумки в пикселях (для сравнения масштаба).
 
 Использование (из папки src/):
-    python eval_videos.py                                  # best26n
-    python eval_videos.py --models best26n best26s
+    python eval_videos.py                                  # модель из config.py
+    python eval_videos.py --models best26n_nodc_640 best26n
     python eval_videos.py --model ../runs/train/cctv_yolo26n_all_640/weights/best.pt
     python eval_videos.py --save-dir ../runs/field_dump   # сохранить кадры с боксами
 """
@@ -34,7 +34,7 @@ def parse_args():
         description="Прогон моделей по videos/ с подсчётом детекций.",
         formatter_class=argparse.RawDescriptionHelpFormatter,
     )
-    p.add_argument("--models", nargs="+", default=["best26n"],
+    p.add_argument("--models", nargs="+", default=[cfg.MODEL_PATH.stem],
                    help="имена из weights/ или пути к .pt")
     p.add_argument("--videos", nargs="*", default=None,
                    help="файлы видео (по умолчанию videos/video1..4.*)")
