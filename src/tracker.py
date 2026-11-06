@@ -6,10 +6,13 @@ import config as cfg
 
 
 class ObjTracker:
-    def __init__(self):
-        if not Path(cfg.MODEL_PATH).exists():
-            raise FileNotFoundError(f"Model not found: {cfg.MODEL_PATH}")
-        self.model = YOLO(str(cfg.MODEL_PATH))
+    def __init__(self, model_path=None):
+        path = Path(model_path) if model_path is not None else Path(cfg.MODEL_PATH)
+        if not path.is_absolute():
+            path = cfg.BASE_DIR / path
+        if not path.exists():
+            raise FileNotFoundError(f"Model not found: {path}")
+        self.model = YOLO(str(path))
 
     def process_frame(self, frame):
         tracker_arg = None
@@ -38,14 +41,26 @@ class ObjTracker:
         boxes = r.boxes.xyxy.cpu().numpy()
         track_ids = r.boxes.id.cpu().numpy().astype(int)
         cls_ids = r.boxes.cls.cpu().numpy().astype(int)
+        confs = (r.boxes.conf.cpu().numpy() if r.boxes.conf is not None
+                 else [0.0] * len(boxes))
 
-        for box, track_id, cls_id in zip(boxes, track_ids, cls_ids):
+        for box, track_id, cls_id, conf in zip(boxes, track_ids, cls_ids, confs):
             x1, y1, x2, y2 = map(int, box)
             center = (int((x1 + x2) / 2), int((y1 + y2) / 2))
+            # ступни: в перспективной съёмке расстояние «человек ↔ сумка на полу»
+            # правильнее считать от низа бокса, а не от центра (центр — это торс)
+            feet = (center[0], y2)
+            info = {
+                "center": center,
+                "feet": feet,
+                "bbox": (x1, y1, x2, y2),
+                "height": max(1, y2 - y1),
+                "conf": float(conf),
+            }
             if cls_id == cfg.PERSON_CLASS:
-                persons[track_id] = center
+                persons[track_id] = info
             elif cls_id == cfg.BAG_CLASS:
-                bags[track_id] = {"center": center, "bbox": (x1, y1, x2, y2)}
+                bags[track_id] = info
 
         return persons, bags
 

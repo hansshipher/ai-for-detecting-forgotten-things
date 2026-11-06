@@ -50,7 +50,9 @@ def main():
     # а не растёт бесконечно, как при однопоточном отставании от камеры.
     frame_q = queue.Queue(maxsize=1)
     lock = threading.Lock()
-    shared = {"persons": {}, "tracked_bags": {}}
+    # храним кадр ВМЕСТЕ с результатом: иначе боксы от предыдущего инференса
+    # рисуются поверх следующего кадра и «отстают» от картинки
+    shared = {"frame": None, "vtime": 0.0, "persons": {}, "tracked_bags": {}}
     stop = threading.Event()
 
     def infer_worker():
@@ -61,8 +63,16 @@ def main():
                 continue
             try:
                 persons, bags = tracker.process_frame(frame)
-                tracked_bags = detector.update(persons, bags, vtime)
+                tracked_bags = detector.update(persons, bags, vtime, frame.shape)
+                for ev in detector.drain_events():
+                    if ev.type in ("alarm", "owner_left", "owner_unknown",
+                                   "bystander_near", "bag_taken", "owner_returned"):
+                        print(f"[{vtime:7.2f}s] {ev.type:<14} bag#{ev.bag_id} "
+                              f"status={ev.status} reason={ev.reason} "
+                              f"elapsed={ev.elapsed:.1f}s", flush=True)
                 with lock:
+                    shared["frame"] = frame
+                    shared["vtime"] = vtime
                     shared["persons"] = persons
                     shared["tracked_bags"] = tracked_bags
             except Exception as e:
@@ -105,10 +115,17 @@ def main():
             frame_q.put_nowait((frame, vtime))
 
         with lock:
+            processed = shared["frame"]
+            processed_t = shared["vtime"]
             persons = shared["persons"]
             tracked_bags = shared["tracked_bags"]
 
-        out = visualizer.draw_status(frame, persons, tracked_bags)
+        if processed is None:
+            # первый кадр: результат ещё не готов
+            out = frame.copy()
+        else:
+            # рисуем на КОПИИ обработанного кадра — тогда боксы совпадают с картинкой
+            out = visualizer.draw_status(processed.copy(), persons, tracked_bags)
 
         n_fps += 1
         now = time.time()
@@ -117,7 +134,8 @@ def main():
             n_fps = 0
             t_fps = now
         mode = "CAM" if is_camera else "FILE"
-        cv2.putText(out, f"{mode} | FPS: {fps_real:.1f} | t={vtime if not is_camera else 0:.1f}s",
+        time_str = "" if is_camera else f" | t={processed_t:.1f}s"
+        cv2.putText(out, f"{mode} | FPS: {fps_real:.1f}{time_str}",
                     (10, 25), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (0, 255, 255), 2)
 
         cv2.imshow("Prototype", out)
