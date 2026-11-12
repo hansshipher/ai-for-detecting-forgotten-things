@@ -225,7 +225,7 @@ dataset/
 *.yaml
 README.dataset.txt
 README.roboflow.txt
-train.py
+/train.py
 test_nn.py
 runs/
 fix_labels.py
