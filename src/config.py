@@ -2,9 +2,12 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Рабочая модель: yolo26n @640, обучена без dc_luggage (65 эпох, 30.10.2026).
+# Рабочая модель на 13.11.2026: 12k-модель (yolo26n @640, dataset/12k_merged,
+# 65 эпох). На video1 даёт корректный ALARM по лежащей сумке, на остальных
+# 10 видео — 0 ложных тревог (см. mem/work.md, раздел 15).
 # Файл лежит в weights/ и не хранится в git — ссылка и sha256 в readme.md.
-MODEL_NAME = "best26n_nodc_640.pt"
+# Прежняя демо-модель (без лежащих сумок): best26n_nodc_640.pt.
+MODEL_NAME = "best12k.pt"
 MODEL_PATH = BASE_DIR / "weights" / MODEL_NAME
 
 VIDEO_PATH = BASE_DIR / "videos" / "video1.avi"

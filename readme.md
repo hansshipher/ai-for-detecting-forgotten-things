@@ -50,28 +50,36 @@ python -m pip install -r requirements.txt
 Рабочая модель **не хранится в git** — её нужно скачать отдельно и положить в папку `weights/`.
 
 * **Папка с моделями:** [Google Drive](https://drive.google.com/drive/folders/1A_ShEM1srlCQk-eEvo9lz4037k7ym1KV?usp=sharing)
-* **Файл:** `best26n_nodc_640.pt` ([прямая ссылка](https://drive.google.com/file/d/1y0TZ02xw3CMOBJZ1rgMLkS0JO-CM6Uc9/view?usp=sharing)). В папке рядом лежит `best.pt` — это те же самые веса, можно брать любой.
-* **Куда положить:** `weights/best26n_nodc_640.pt`
-* **Размер:** ~5.2 МБ (5 451 141 байт)
-* **SHA256:** `83AD9DC0BF1DC86AB9F424BCE7C740C7670A52D0D08971742A24BCAEC446DE93`
+* **Файл для демо:** `best12k.pt`
+* **Куда положить:** `weights/best12k.pt`
+* **Размер:** 5 443 141 байт
+* **SHA256:** `DFE30F9B236831871AF2C3B73DCB6E1C6F02BBEE9FB944CE900A1B74E39CF0A1`
+
+В той же папке лежит прежняя демо-модель `best26n_nodc_640.pt` (5 451 141 байт,
+SHA256 `83AD9DC0BF1DC86AB9F424BCE7C740C7670A52D0D08971742A24BCAEC446DE93`) —
+её можно взять, если нужно вернуть `MODEL_NAME` в `src/config.py` на прежнее имя.
 
 Проверка целостности после скачивания:
 
 * **Windows (PowerShell)**:
 
 ```powershell
-Get-FileHash .\weights\best26n_nodc_640.pt -Algorithm SHA256
+Get-FileHash .\weights\best12k.pt -Algorithm SHA256
 ```
 
 * **macOS / Linux**:
 
 ```bash
-sha256sum weights/best26n_nodc_640.pt
+sha256sum weights/best12k.pt
 ```
 
 Хеш должен совпасть посимвольно. Если не совпал — файл скачался не полностью или это другая модель, скачайте заново.
 
-Что это за модель: `yolo26n`, обучена на `imgsz=640` без класса `dc_luggage` (65 эпох, 30.10.2026), 2 класса — `bag`, `person`. Метрики на валидации: mAP50-95 ≈ 0.573, mAP50 ≈ 0.878.
+Что это за модель: `yolo26n`, `imgsz=640`, обучена на `dataset/12k_merged`
+(65 эпох), 2 класса — `bag`, `person`. На своей валидации 12k: mAP50 0.847 /
+mAP50-95 0.570. На честном `cctv_holdout` — 0.382 / 0.171: метрика низкая, но
+именно эта модель находит лежащую сумку, и на `video1` логика даёт корректный
+`ALARM` при нуле ложных тревог на остальных видео.
 
 > Папка `weights/` добавлена в `.gitignore`. Обученные и скачанные веса в репозиторий не коммитим — делимся через облако.
 
@@ -167,17 +175,45 @@ python train.py --data ../dataset/data_all.yaml --name finetune_all_640 \
   * **инструменты** (`src/tools/`): `audit_duplicates.py` — dHash-кластеры и утечки между сплитами; `annotate_person.py` — авторазметка людей COCO-учителем; `build_12k_merged.py` — сборка `dataset/12k_merged`; `make_contact_sheets.py` — контактные листы для визуальной проверки; `check_dataset.py` — аудит разметки; `merge_splits.py` — сборка `dataset/all`; `download_model.py` — базовые веса Ultralytics.
 * `configs/custom_tracker.yaml` — настройки ByteTrack.
 * `weights/` — веса моделей (`.pt`), **в git не хранятся**.
-* `videos/` — тестовые ролики для демо и оценки: `video1..4` в git, `video5..11` — локально.
+* `videos/` — тестовые ролики для демо и оценки (`video1..11`, из ABODA); **в git не хранятся**, см. «Данные и атрибуция».
 * `dataset/`, `runs/`, `mem/` — датасет, результаты обучений и локальные заметки, **в git не хранятся**.
+
+---
+
+## Данные и атрибуция
+
+* **`videos/`** — 11 последовательностей из **ABODA** (ABandoned Objects DAtaset),
+  [github.com/kevinlin311tw/ABODA](https://github.com/kevinlin311tw/ABODA).
+  Файла лицензии в репозитории ABODA нет (GitHub API отдаёт `license: null`),
+  поэтому ролики **не распространяются вместе с проектом**: скачайте их из
+  исходного репозитория и положите в `videos/`.
+
+  Citation: K. Lin, S.-C. Chen, C.-S. Chen, D.-T. Lin, Y.-P. Hung,
+  "Abandoned Object Detection via Temporal Consistency Modeling and
+  Back-Tracing Verification for Visual Surveillance", *IEEE Transactions on
+  Information Forensics and Security*, vol. 10, no. 7, 2015,
+  DOI [10.1109/TIFS.2015.2408263](https://doi.org/10.1109/TIFS.2015.2408263).
+
+  Важно: 11 роликов — это **5 сцен**: `video1`; `video2/3/4` (одна запись);
+  `video5/6` (одна камера, 5 — ИК-ночь, 6 — видимый свет); `video7/8/9/10`
+  (одна запись); `video11`. Независимых сцен для проверки — пять, а не
+  одиннадцать.
+* **`dataset/cctv`** — экспорт Roboflow, лицензия **CC BY 4.0** (атрибуция —
+  в `README.dataset.txt` внутри архива).
+* **`dataset/12k-dataset`** — публичный Roboflow-экспорт; условия и атрибуция
+  указаны в его `README.dataset.txt`.
+
+Лицензии инструментов: Ultralytics YOLO — **AGPL-3.0**, это надо учитывать при
+публикации проекта и весов. Код и веса сторонних репозиториев не копируются.
 
 ---
 
 ## Известные ограничения
 
-* Сумка, лежащая на полу, детектится нестабильно: в обучающей выборке почти нет вида сверху.
+* Сумка, лежащая на полу, детектится нестабильно: в обучающей выборке почти нет вида сверху. Модель `best12k.pt` её видит, а файнтюны на своём домене — часто нет.
 * Иногда человек у края кадра (частично обрезанный) классифицируется как `bag` — путаница классов `person → bag`.
-* Полный путь `ALARM` на реальных видео пока не воспроизведён: модель пропускает лежащую сумку. Логика проверена синтетическими тестами и офлайн-прогоном (`eval_logic.py`).
-* Для `video3..4` нет разметки, поэтому честная оценка качества сейчас возможна только по `video1..2`.
+* Полный путь до `ALARM` воспроизведён на `video1` с моделью `best12k.pt`: владелец уходит, сумка стоит, тревога на 15-й секунде (`runs/demo_check_12k/video1_alarm.jpg`). На остальных видео сцены «положил и ушёл дольше 15 с» нет, поэтому тревог там ноль.
+* Честная количественная оценка — только `dataset/cctv_holdout` (108+60 кадров). `videos/` разметки не имеют и служат качественной проверкой на 5 сценах.
 * Ускорение через OpenVINO INT8 для слабых ноутбуков — в планах, пока не реализовано.
 * Все подписи на кадре — латиницей: `cv2.putText` не умеет кириллицу.
 
