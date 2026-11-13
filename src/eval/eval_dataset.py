@@ -38,17 +38,55 @@ def parse_args():
     return p.parse_args()
 
 
+def _yaml_for_split(data_path, split):
+    """Вернуть (путь к yaml, временный файл или None).
+
+    Ultralytics подставляет корень датасета только к train/val/test/minival,
+    а кастомные ключи (holdout) оставляет относительными — они резолвятся от
+    текущей папки. Поэтому для такого сплита пишем рядом временный yaml,
+    где все пути абсолютные; относительные train/val остаются валидными,
+    потому что файл лежит в той же папке.
+    """
+    if split in {"train", "val", "test", "minival"}:
+        return data_path, None
+
+    import yaml
+
+    data = yaml.safe_load(data_path.read_text(encoding="utf-8")) or {}
+    if split not in data:
+        return data_path, None
+
+    changed = False
+    for key, value in list(data.items()):
+        if key in {"path", "download", "names"} or not isinstance(value, str):
+            continue
+        if not Path(value).is_absolute():
+            data[key] = str((data_path.parent / value).resolve())
+            changed = True
+    if not changed:
+        return data_path, None
+
+    tmp = data_path.with_name(f"{data_path.stem}.{split}.tmp.yaml")
+    tmp.write_text(yaml.safe_dump(data, allow_unicode=True, sort_keys=False), encoding="utf-8")
+    return tmp, tmp
+
+
 def main():
     args = parse_args()
     from ultralytics import YOLO
 
     model = YOLO(args.weights)
     split = "val" if args.split == "valid" else args.split
-    metrics = model.val(
-        data=args.data, split=split, imgsz=args.imgsz,
-        conf=args.conf, iou=args.iou, batch=args.batch,
-        device=args.device, verbose=False, plots=False,
-    )
+    data_yaml, tmp_yaml = _yaml_for_split(Path(args.data), split)
+    try:
+        metrics = model.val(
+            data=str(data_yaml), split=split, imgsz=args.imgsz,
+            conf=args.conf, iou=args.iou, batch=args.batch,
+            device=args.device, verbose=False, plots=False,
+        )
+    finally:
+        if tmp_yaml is not None:
+            tmp_yaml.unlink(missing_ok=True)
 
     names = metrics.names if isinstance(metrics.names, dict) else dict(enumerate(metrics.names))
     result = {
@@ -74,7 +112,10 @@ def main():
 
     out = Path(args.out)
     out.mkdir(parents=True, exist_ok=True)
-    path = out / f"{Path(args.weights).stem}_{args.split}.json"
+    data_path = Path(args.data)
+    # data.yaml у разных датасетов называется одинаково — берём имя папки
+    data_label = data_path.parent.name if data_path.stem == "data" else data_path.stem
+    path = out / f"{data_label}_{Path(args.weights).stem}_{args.split}.json"
     path.write_text(json.dumps(result, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"\n[INFO] saved: {path}")
     return 0
