@@ -14,9 +14,9 @@
      Картинки не копируются, а хардлинкуются (0 байт на диске).
 
 Запуск (из папки src/):
-    python build_12k_merged.py --dry-run
-    python build_12k_merged.py
-    python build_12k_merged.py --out ../dataset/12k_merged --seed 0
+    python tools/build_12k_merged.py --dry-run
+    python tools/build_12k_merged.py
+    python tools/build_12k_merged.py --out ../dataset/12k_merged --seed 0
 
 Выход: dataset/12k_merged/{train,valid,test,holdout}/{images,labels},
        data.yaml, stats.json
@@ -32,6 +32,7 @@ import sys
 from collections import defaultdict
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import config as cfg
 
 IMG_EXT = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}

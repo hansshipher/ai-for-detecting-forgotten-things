@@ -219,16 +219,13 @@ __marimo__/
 # Streamlit
 .streamlit/secrets.toml
 
-# NN models
+# NN models, datasets, run outputs
 weights/
 dataset/
+runs/
 *.yaml
 README.dataset.txt
 README.roboflow.txt
-/train.py
-test_nn.py
-runs/
-fix_labels.py
 
 # Local working notes
 mem/

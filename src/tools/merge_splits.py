@@ -19,9 +19,9 @@
   - пишет dataset/data_all.yaml.
 
 Использование (из папки src/):
-    python merge_splits.py                      # отчёт, ничего не пишет
-    python merge_splits.py --apply              # скопировать и создать yaml
-    python merge_splits.py --apply --overwrite  # перезаписать готовый all/
+    python tools/merge_splits.py                      # отчёт, ничего не пишет
+    python tools/merge_splits.py --apply              # скопировать и создать yaml
+    python tools/merge_splits.py --apply --overwrite  # перезаписать готовый all/
 """
 
 import argparse
@@ -35,6 +35,7 @@ from pathlib import Path
 
 import yaml
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import config as cfg
 
 IMG_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}

@@ -77,7 +77,7 @@ sha256sum weights/best26n_nodc_640.pt
 
 ### 5. Запустите проект
 
-Все скрипты запускаются **из папки `src/`** — в них используются плоские импорты (`import config as cfg`), поэтому из корня репозитория они не найдутся.
+Все скрипты запускаются **из папки `src/`** — в них используются плоские импорты (`import config as cfg`). Это касается и подпапок: `python eval/eval_videos.py`, `python tools/build_12k_merged.py`.
 
 ```bash
 cd src
@@ -124,15 +124,15 @@ python test.py --camera --source rtsp://...    # IP-камера
 
 ```bash
 # Полевой замер по videos/: сколько сумок находит модель, медианный размер бокса, мс/кадр
-python eval_videos.py
-python eval_videos.py --models best26n_nodc_640 best26n --save-dir ../runs/field_dump
+python eval/eval_videos.py
+python eval/eval_videos.py --models best26n_nodc_640 best26n --save-dir ../runs/field_dump
 
 # Офлайн-прогон логики по видео (сколько тревог, какие события)
-python eval_logic.py
-python eval_logic.py --save-dir ../runs/logic_check --csv ../runs/logic_eval.csv
+python eval/eval_logic.py
+python eval/eval_logic.py --save-dir ../runs/logic_check --csv ../runs/logic_eval.csv
 
 # Проверка, что логика считает секунды, а не кадры: сравнение stride 1 и 3
-python eval_logic.py --check
+python eval/eval_logic.py --check
 ```
 
 Метрики на `dataset/val` завышены (соседние кадры тех же видео попадают в train), поэтому честную оценку даёт только прогон по `videos/video1..4`.
@@ -140,8 +140,20 @@ python eval_logic.py --check
 Работа с датасетом (нужен локальный `dataset/`, в git его нет):
 
 ```bash
-python check_dataset.py --splits all      # аудит разметки: полигоны, битые боксы, дубликаты
-python merge_splits.py --apply            # пересборка dataset/all + data_all.yaml
+python tools/check_dataset.py --splits all      # аудит разметки: полигоны, битые боксы, дубликаты
+python tools/merge_splits.py --apply            # пересборка dataset/all + data_all.yaml
+python tools/audit_duplicates.py --root ../dataset/12k-dataset   # dHash-кластеры и утечки между сплитами
+```
+
+Обучение. Каждый прогон пишется в отдельную папку `runs/train/<name>`, рабочая модель
+`weights/best26n_nodc_640.pt` при этом не перезаписывается:
+
+```bash
+python train.py --data ../dataset/12k_merged/data.yaml --name cctv_yolo26n_12k_640
+
+# файнтюн на своём домене от предыдущего прогона
+python train.py --data ../dataset/data_all.yaml --name finetune_all_640 \
+    --weights ../runs/train/cctv_yolo26n_12k_640/weights/best.pt --epochs 40
 ```
 
 ---
@@ -149,19 +161,13 @@ python merge_splits.py --apply            # пересборка dataset/all + d
 ## Структура проекта
 
 * `src/` — исходный код:
-  * `config.py` — центральный конфиг: путь к модели, классы, пороги логики, цвета.
-  * `tracker.py` — детекция и трекинг (`ObjTracker`).
-  * `logic.py` — логика забытых вещей, статусы и события.
-  * `visualizer.py` — отрисовка боксов, статусов и связей.
-  * `test.py` — точка входа, основной цикл обработки видео/камеры.
-  * `eval_videos.py` — полевой замер детекции по `videos/`.
-  * `eval_logic.py` — офлайн-проверка логики и FPS.
-  * `check_dataset.py` — аудит разметки датасета.
-  * `merge_splits.py` — сборка `dataset/all` и `data_all.yaml`.
-  * `download_model.py` — вспомогательный скрипт для базовых весов Ultralytics (для рабочей модели не нужен).
+  * **приложение (демо)**: `config.py` — конфиг (модель, классы, пороги, цвета); `tracker.py` — детекция и ByteTrack; `logic.py` — статусы и события; `visualizer.py` — отрисовка; `test.py` — точка входа (видео/камера).
+  * **обучение**: `train.py` — обёртка над ultralytics с дефолтами проекта.
+  * **оценка** (`src/eval/`): `eval_videos.py` — полевой замер по `videos/`; `eval_logic.py` — офлайн-прогон логики и FPS; `eval_dataset.py` — mAP и P/R по классам на сплите.
+  * **инструменты** (`src/tools/`): `audit_duplicates.py` — dHash-кластеры и утечки между сплитами; `annotate_person.py` — авторазметка людей COCO-учителем; `build_12k_merged.py` — сборка `dataset/12k_merged`; `make_contact_sheets.py` — контактные листы для визуальной проверки; `check_dataset.py` — аудит разметки; `merge_splits.py` — сборка `dataset/all`; `download_model.py` — базовые веса Ultralytics.
 * `configs/custom_tracker.yaml` — настройки ByteTrack.
 * `weights/` — веса моделей (`.pt`), **в git не хранятся**.
-* `videos/` — 4 тестовых ролика для демо и оценки.
+* `videos/` — тестовые ролики для демо и оценки: `video1..4` в git, `video5..11` — локально.
 * `dataset/`, `runs/`, `mem/` — датасет, результаты обучений и локальные заметки, **в git не хранятся**.
 
 ---

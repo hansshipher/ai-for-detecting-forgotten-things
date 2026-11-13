@@ -1,5 +1,7 @@
+import sys
 from pathlib import Path
 from ultralytics import YOLO
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import config as cfg
 
 def main():

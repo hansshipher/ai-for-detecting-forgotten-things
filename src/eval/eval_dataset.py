@@ -7,8 +7,8 @@
 где person-метрика не измеряет согласие с учителем.
 
 Запуск (из папки src/):
-    python eval_dataset.py --weights ../weights/best26n_nodc_640.pt --split holdout
-    python eval_dataset.py --weights ../runs/train/x/weights/best.pt --split valid --conf 0.40
+    python eval/eval_dataset.py --weights ../weights/best26n_nodc_640.pt --split holdout
+    python eval/eval_dataset.py --weights ../runs/train/x/weights/best.pt --split valid --conf 0.40
 
 Выход: печать таблицы + runs/eval/<weights_stem>_<split>.json
 """
@@ -18,6 +18,7 @@ import json
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import config as cfg
 
 

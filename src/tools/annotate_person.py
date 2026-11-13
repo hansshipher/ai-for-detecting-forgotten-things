@@ -9,9 +9,9 @@
 Классы COCO: person = 0 -> в наших лейблах это класс 1 (bag = 0).
 
 Запуск (из папки src/):
-    python annotate_person.py
-    python annotate_person.py --conf 0.45 --imgsz 1280
-    python annotate_person.py --splits train --overwrite
+    python tools/annotate_person.py
+    python tools/annotate_person.py --conf 0.45 --imgsz 1280
+    python tools/annotate_person.py --splits train --overwrite
 
 Результат: runs/12k_person_labels/<split>/<stem>.txt
     строки вида "1 cx cy w h" (нормированные, как в YOLO).
@@ -24,6 +24,7 @@ import sys
 import time
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import config as cfg
 
 SPLITS = ("train", "valid", "test")

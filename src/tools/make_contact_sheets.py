@@ -6,9 +6,9 @@
 манекены, отражения) до того, как они попадут в обучение.
 
 Запуск (из папки src/):
-    python make_contact_sheets.py
-    python make_contact_sheets.py --split holdout --n 40 --per-sheet 20
-    python make_contact_sheets.py --split train --only-person
+    python tools/make_contact_sheets.py
+    python tools/make_contact_sheets.py --split holdout --n 40 --per-sheet 20
+    python tools/make_contact_sheets.py --split train --only-person
 
 Выход: runs/12k_qc/sheet_<split>_<i>.jpg
 """
@@ -21,6 +21,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import config as cfg
 
 COLOR_BAG = (0, 200, 0)

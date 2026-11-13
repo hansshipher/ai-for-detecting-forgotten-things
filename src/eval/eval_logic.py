@@ -9,11 +9,11 @@
      Это прямая проверка, что логика считает секунды, а не кадры.
 
 Запуск (из папки src/):
-    python eval_logic.py                          # все видео, каждый кадр
-    python eval_logic.py --stride 3               # имитация слабого ноутбука
-    python eval_logic.py --check                  # сравнить stride 1 и 3
-    python eval_logic.py --save-dir ../runs/logic_check
-    python eval_logic.py --csv ../runs/logic_eval.csv
+    python eval/eval_logic.py                          # все видео, каждый кадр
+    python eval/eval_logic.py --stride 3               # имитация слабого ноутбука
+    python eval/eval_logic.py --check                  # сравнить stride 1 и 3
+    python eval/eval_logic.py --save-dir ../runs/logic_check
+    python eval/eval_logic.py --csv ../runs/logic_eval.csv
 """
 
 import argparse
@@ -26,6 +26,7 @@ from pathlib import Path
 
 import cv2
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import config as cfg
 from logic import AbObjDetector
 from tracker import ObjTracker

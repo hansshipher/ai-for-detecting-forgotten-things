@@ -12,9 +12,9 @@
      демо перестанет быть честной.
 
 Запуск (из папки src/):
-    python audit_duplicates.py --root ../dataset/12k-dataset
-    python audit_duplicates.py --root ../dataset/12k-dataset --videos ../videos
-    python audit_duplicates.py --root ../dataset/12k-dataset --against ../dataset/all/images
+    python tools/audit_duplicates.py --root ../dataset/12k-dataset
+    python tools/audit_duplicates.py --root ../dataset/12k-dataset --videos ../videos
+    python tools/audit_duplicates.py --root ../dataset/12k-dataset --against ../dataset/all/images
 
 Выход: сводка в консоль + JSON/CSV в --out (по умолчанию runs/12k_audit).
 """
@@ -29,6 +29,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import config as cfg
 
 IMG_EXT = {".jpg", ".jpeg", ".png", ".bmp", ".webp", ".tif", ".tiff"}
