@@ -15,6 +15,7 @@
 
 import argparse
 import sys
+from pathlib import Path
 
 import config as cfg
 
@@ -60,8 +61,10 @@ def main():
         cache=args.cache,
         pretrained=True,
     )
-    print(f"[DONE] run: {args.project}\\{args.name}")
-    print(f"[INFO] best: {args.project}\\{args.name}\\weights\\best.pt")
+    save_dir = Path(model.trainer.save_dir)
+    best = save_dir / "weights" / "best.pt"
+    print(f"[DONE] run: {save_dir}")
+    print(f"[INFO] best: {best}")
     return 0
 
 
