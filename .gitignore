@@ -227,5 +227,8 @@ runs/
 README.dataset.txt
 README.roboflow.txt
 
+# ABODA videos: у исходного репозитория нет лицензии -> не коммитим
+videos/
+
 # Local working notes
 mem/
