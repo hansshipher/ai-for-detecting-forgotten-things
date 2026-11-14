@@ -14,10 +14,10 @@
 Скрипт только читает. Ничего не пишет и не удаляет.
 
 Использование (из папки src/):
-    python check_dataset.py                      # train valid test
-    python check_dataset.py --splits all         # собранный dataset/all
-    python check_dataset.py --dir ../dataset/all # произвольная пара images/labels
-    python check_dataset.py --no-md5             # без проверки дублей (быстрее)
+    python tools/check_dataset.py                      # train valid test
+    python tools/check_dataset.py --splits all         # собранный dataset/all
+    python tools/check_dataset.py --dir ../dataset/all # произвольная пара images/labels
+    python tools/check_dataset.py --no-md5             # без проверки дублей (быстрее)
 """
 
 import argparse
@@ -29,6 +29,7 @@ from pathlib import Path
 
 import numpy as np
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import config as cfg
 
 IMG_EXTS = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}

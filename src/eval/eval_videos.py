@@ -12,10 +12,10 @@
   - медианный размер бокса сумки в пикселях (для сравнения масштаба).
 
 Использование (из папки src/):
-    python eval_videos.py                                  # модель из config.py
-    python eval_videos.py --models best26n_nodc_640 best26n
-    python eval_videos.py --model ../runs/train/cctv_yolo26n_all_640/weights/best.pt
-    python eval_videos.py --save-dir ../runs/field_dump   # сохранить кадры с боксами
+    python eval/eval_videos.py                                  # модель из config.py
+    python eval/eval_videos.py --models best26n_nodc_640 best26n
+    python eval/eval_videos.py --models ../runs/train/cctv_yolo26n_all_640/weights/best.pt
+    python eval/eval_videos.py --save-dir ../runs/field_dump   # сохранить кадры с боксами
 """
 
 import argparse
@@ -26,6 +26,7 @@ from pathlib import Path
 import cv2
 import numpy as np
 
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import config as cfg
 
 
