@@ -1,3 +1,5 @@
+"""Детекция YOLO и трекинг ByteTrack: люди и сумки с track_id."""
+
 import cv2 as cv
 from pathlib import Path
 from ultralytics import YOLO

@@ -1,10 +1,4 @@
-"""Автотесты веб-панели: только HTTP-слой, без модели и без запуска видео.
-
-Запуск из src/:
-    python -m unittest discover -s tests -v
-
-Если Flask не установлен (pip install -r requirements.txt), тесты пропускаются.
-"""
+"""Автотесты HTTP-слоя веб-панели — без модели и без запуска видео."""
 
 import importlib.util
 import sys

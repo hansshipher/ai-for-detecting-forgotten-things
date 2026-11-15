@@ -1,10 +1,4 @@
-"""HTML-отчёт по сессии: итоги, настройки и журнал тревог с картинками.
-
-Строится из файлов папки сессии (session.json + events.jsonl), поэтому его
-можно пересобрать в любой момент:
-
-    python report.py ../runs/sessions/2026-11-15_12-00-00
-"""
+"""HTML-отчёт по сессии из session.json и events.jsonl."""
 
 from __future__ import annotations
 
@@ -76,7 +70,7 @@ def build_report(session_dir: Path | str) -> Path:
         f"<tr><td>{_esc(SETTING_TITLES.get(k, k))}</td><td><code>{_esc(v)}</code></td></tr>"
         for k, v in settings.items())
 
-    # Галерея тревог — главное, что хочет увидеть оператор/комиссия
+    # галерея тревог
     gallery = ""
     for r in alarms:
         img = r.get("crop_path") or r.get("frame_path")

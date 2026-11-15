@@ -1,14 +1,5 @@
 #!/usr/bin/env python3
-"""Веб-панель оператора: открывается в браузере, работает на этом же компьютере.
-
-    cd src
-    python web_app.py                 # http://127.0.0.1:8000 откроется сам
-    python web_app.py --port 8080
-    python web_app.py --host 0.0.0.0  # открыть панель с телефона/другого ПК в той же сети
-
-Внутри тот же pipeline.Pipeline, что у test.py и gui.py: модель, логика, журнал
-и отчёт одинаковые. Сервер только отдаёт картинку (MJPEG) и состояние (JSON).
-"""
+"""Веб-панель оператора на Flask: MJPEG, состояние сцены и управление сессией."""
 
 from __future__ import annotations
 
@@ -71,7 +62,7 @@ class State:
             self.report = p.stop()
         except Exception as e:      # отчёт не должен ронять сервер
             self.error = f"Не удалось сохранить отчёт: {e}"
-        self.drain(p)               # события последних кадров
+        self.drain(p)
 
 
 S = State()
@@ -102,11 +93,8 @@ def _settings():
 
 
 def _resolve_model(raw) -> Path:
-    """Модель — только .pt из папки weights/.
-
-    .pt загружается через pickle (torch.load), поэтому путь из браузера — это
-    потенциальное выполнение чужого кода. Панель принимает только свои веса.
-    """
+    """Модель — только .pt из папки weights/: .pt грузится как pickle,
+    поэтому путь из браузера не должен указывать куда угодно."""
     p = Path(raw).expanduser() if raw else Path(cfg.MODEL_PATH)
     if not p.is_absolute():
         p = WEIGHTS_DIR / p

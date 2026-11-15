@@ -1,20 +1,5 @@
 #!/usr/bin/env python3
-"""Графический интерфейс оператора (Tkinter — входит в стандартный Python).
-
-Возможности:
-  * выбор источника: видеофайл, веб-камера, IP-камера (rtsp/http), выбор весов модели;
-  * старт / пауза / стоп, ручной снимок кадра;
-  * общий статус сцены (НОРМА / ВНИМАНИЕ / ТРЕВОГА), счётчики, FPS, прогресс файла;
-  * журнал событий на русском с цветами; клик по строке — показать снимок;
-  * звуковой сигнал и мигание при тревоге;
-  * настройки «на лету»: задержка тревоги, порог уверенности, эскалация при постороннем;
-  * по окончании — HTML-отчёт сессии (кнопка «Отчёт»), папка с журналом и снимками.
-
-Запуск (из папки src/):
-    python gui.py
-    python gui.py --source ../videos/video1.avi
-    python gui.py --sim            # синтетическая сцена, без модели (проверка логики)
-"""
+"""Окно оператора на Tkinter — запасной вариант, если браузер недоступен."""
 
 from __future__ import annotations
 
@@ -163,8 +148,6 @@ class App:
         body.add(top, weight=4)
 
         # --- видео
-        # Canvas, а не Label: Label подстраивает размер под картинку, и окно
-        # начинает «расти» на каждом кадре
         self.video = tk.Canvas(top, bg="#111111", highlightthickness=0, bd=0)
         self.video.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         self._video_img_id = None
@@ -303,7 +286,6 @@ class App:
         opts = dict(source=source, camera=is_cam, model=model,
                     realtime=bool(self.var_realtime.get()) or is_cam,
                     record=bool(self.var_record.get()), snapshots=bool(self.var_snapshots.get()))
-        # модель грузится несколько секунд — не замораживаем окно
         threading.Thread(target=self._create_pipeline, args=(opts,), daemon=True).start()
 
     def _create_pipeline(self, o):

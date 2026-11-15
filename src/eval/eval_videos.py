@@ -1,22 +1,5 @@
 #!/usr/bin/env python3
-"""Полевой замер: сколько сумок модель находит на целевых видео.
-
-Метрика на dataset/val завышена (соседние кадры тех же видео в train),
-поэтому честный ответ даёт только прогон по videos/video1..4 — то есть
-ровно по тем роликам, на которых будет демо.
-
-Считает по каждому видео:
-  - кадров обработано (каждый --step-й);
-  - детекций bag и person;
-  - долю кадров, где найдена хотя бы одна сумка;
-  - медианный размер бокса сумки в пикселях (для сравнения масштаба).
-
-Использование (из папки src/):
-    python eval/eval_videos.py                                  # модель из config.py
-    python eval/eval_videos.py --models best26n_nodc_640 best26n
-    python eval/eval_videos.py --models ../runs/train/cctv_yolo26n_all_640/weights/best.pt
-    python eval/eval_videos.py --save-dir ../runs/field_dump   # сохранить кадры с боксами
-"""
+"""Полевой замер по videos/: детекции, доля кадров с сумкой, размер бокса, мс/кадр."""
 
 import argparse
 import sys

@@ -1,27 +1,10 @@
 #!/usr/bin/env python3
-"""Синтетическая сцена для проверки логики, журнала и GUI без модели и без видео.
-
-Сценарий (25 fps, 45 с):
-   0–4 с   человек P1 входит слева и несёт сумку        -> SAFE (carried)
-   4–6 с   ставит сумку и стоит рядом                   -> SAFE (owner_near)
-   6–10 с  уходит вправо и пропадает из кадра           -> WARNING (owner_left)
-  14–17 с  посторонний P2 проходит по дальнему плану    -> тревогу не отменяет
-  ~22.8 с  прошло ALARM_DELAY_SEC без владельца         -> ALARM
-  32–36 с  P1 возвращается. Без re-ID система не знает, что это владелец
-           (он пропадал > PERSON_MISSING_SEC), поэтому для неё это «посторонний»
-           и тревога держится                           -> ALARM (bystander_near)
-  36–42 с  человек уносит сумку                         -> alarm_cleared (carried)
-
-Детекции здесь «идеальные» — проверяется именно логика и обвязка, а не YOLO.
-
-Запуск (из src/):
-    python tools/sim_scene.py                 # прогон без окна, печать событий
-    python gui.py --sim                       # то же в GUI
-"""
+"""Синтетическая сцена для проверки логики и интерфейса без модели."""
 
 from __future__ import annotations
 
 import sys
+import time
 from pathlib import Path
 
 import cv2
@@ -87,7 +70,7 @@ def scene_at(t: float):
 
 def render(t: float, idx: int):
     img = np.full((H, W, 3), (58, 52, 48), np.uint8)
-    cv2.rectangle(img, (0, 300), (W, H), (85, 85, 80), -1)        # пол
+    cv2.rectangle(img, (0, 300), (W, H), (85, 85, 80), -1)
     persons, bags = scene_at(t)
     for p in persons.values():
         x1, y1, x2, y2 = p["bbox"]
@@ -97,8 +80,8 @@ def render(t: float, idx: int):
         x1, y1, x2, y2 = b["bbox"]
         cv2.rectangle(img, (x1, y1), (x2, y2), (40, 60, 140), -1)
     cv2.putText(img, "SIMULATION", (W - 190, H - 15), cv2.FONT_HERSHEY_SIMPLEX, 0.7, (200, 200, 200), 2)
-    # номер кадра зашит в первые пиксели: «трекер» узнаёт по нему время,
-    # даже если очередь drop-old пропустила кадры
+    # номер кадра в первых пикселях: «трекер» узнаёт время, даже если drop-old
+    # пропустил кадры
     img[0, 0:4] = np.frombuffer(np.uint32(idx).tobytes(), np.uint8)[:, None]
     return img
 
@@ -153,7 +136,6 @@ def run_headless(realtime=False, log=True):
                  logger=logger, realtime=realtime, hud=True)
     p.start()
     while not p.finished:
-        import time
         time.sleep(0.05)
     report = p.stop()
     rows = []

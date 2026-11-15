@@ -119,8 +119,8 @@ python gui.py
 python gui.py --sim
 ```
 
-> Tkinter входит в стандартный установщик Python для Windows и macOS.
-> На Linux, если `import tkinter` падает: `sudo apt install python3-tk`.
+Окно умеет то же, что панель: выбор источника и весов, пауза, ручной снимок, журнал событий
+со снимками, звук при тревоге, настройки на лету и HTML-отчёт по окончании сессии.
 
 **Консольный режим (окно OpenCV):**
 
@@ -162,7 +162,8 @@ python -m unittest discover -s tests -v
 оставленная сумка даёт ровно одну тревогу через `ALARM_DELAY_SEC`, сумка в руках и статичное
 ложное срабатывание тревоги не дают, таймер не зависит от FPS, журнал пишет CSV, снимки и отчёт.
 Отдельная группа (`tests/test_web.py`) проверяет HTTP-слой панели: валидацию настроек, запрет
-модели вне `weights/` и защиту от выхода за папку сессий.
+модели вне `weights/` и защиту от выхода за папку сессий. Если Flask не установлен, эта группа
+пропускается.
 
 ---
 
@@ -172,8 +173,8 @@ python -m unittest discover -s tests -v
 
 * `tracker.py` — класс `ObjTracker`: YOLO + ByteTrack. На выходе люди и сумки с `track_id`, боксами и уверенностью.
 * `logic.py` — класс `AbObjDetector`: состояние по каждой сумке. Хранит владельца, историю движения, посторонних рядом; считает таймеры **в секундах**, а не в кадрах.
-* `visualizer.py` — рисует боксы, статусы и связи «человек ↔ сумка».
-* `test.py` — точка входа: читает видео/камеру, инференс в отдельном потоке (всегда обрабатывается самый свежий кадр), показывает окно и FPS.
+* `visualizer.py` — рисует боксы, статусы, линии до владельца и постороннего.
+* `pipeline.py` — конвейер: поток чтения держит темп источника, поток инференса берёт самый свежий кадр (очередь на 1 кадр), поэтому задержка не растёт. С `realtime=False` файл обрабатывается покадрово. Наружу отдаёт готовую картинку `get_view()` и очередь строк журнала `events`. Один и тот же класс используют все три точки входа.
 
 Правила статусов:
 
@@ -184,7 +185,54 @@ python -m unittest discover -s tests -v
 * Посторонний рядом **не** даёт `SAFE` — только `WARNING`, решение остаётся за оператором.
 * Статичное ложное срабатывание (дверной проём, текстура) не может дать `ALARM`: тревожиться можно только за сумку, которую принесли и которая двигалась (`REQUIRE_MOVED`).
 
+«Стоит» определяется по смещению центра сумки за `STATIONARY_WINDOW_SEC`. Владельцем становится человек, который был рядом в момент появления или переноски сумки; радиус близости ограничен. Время берётся из `video_time`, шаг `dt` ограничен `MAX_DT_SEC` — пропуски кадров не сдвигают таймеры.
+
 Все пороги и таймеры — в `src/config.py` (`ALARM_DELAY_SEC`, `BYSTANDER_ESCALATE`, радиусы близости, пороги стационарности и т.д.).
+
+---
+
+## Модули и точки входа
+
+Три способа запуска, один конвейер (`pipeline.Pipeline`) и один формат журнала:
+
+| Точка входа | Что это | Как выбрать источник |
+|---|---|---|
+| `web_app.py` | веб-панель в браузере, основной режим | в самой панели: список из `videos/`, камера или тестовая сцена |
+| `gui.py` | окно Tkinter, запасной режим | поле «Источник» и кнопка «Файл…», либо `--source` |
+| `test.py` | окно OpenCV, самый быстрый смоук-тест | `--source ../videos/video1.avi`, `--camera --source 0` |
+
+Остальные флаги — в `--help`. У `web_app.py` есть `--host`, `--port` и `--no-browser`.
+
+**HTTP-слой панели** (`web_app.py`):
+
+| Метод и путь | Назначение |
+|---|---|
+| `GET /` | страница панели |
+| `GET /api/options` | доступные видео, веса, настройки по умолчанию |
+| `POST /api/start` | запуск: `source`, `model`, `camera`, `record`, `snapshots`, `realtime` |
+| `POST /api/pause`, `/api/stop`, `/api/snapshot` | пауза, остановка с отчётом, ручной снимок |
+| `POST /api/settings` | `alarm_delay`, `conf`, `escalate` — на лету |
+| `GET /api/state?since=N` | состояние сцены и новые строки журнала начиная с `N` |
+| `GET /api/sessions` | прошлые сессии и ссылки на их отчёты |
+| `GET /stream.mjpg`, `/api/frame.jpg` | видеопоток и один кадр (запасной вариант) |
+
+Ошибки возвращаются как `{"ok": false, "error": "..."}` с кодом 400; занятая сессия — 409.
+
+**Синтетическая сцена** (`tools/sim_scene.py`, 25 fps, 45 с) — проверка логики без модели:
+
+| Время | Что происходит | Статус |
+|---|---|---|
+| 0–4 с | P1 входит слева и несёт сумку | SAFE (carried) |
+| 4–6 с | ставит сумку, стоит рядом | SAFE (owner_near) |
+| 6–10 с | уходит вправо и пропадает из кадра | WARNING (owner_left) |
+| 14–17 с | посторонний P2 проходит по дальнему плану | тревога не снимается |
+| ~22.8 с | прошло `ALARM_DELAY_SEC` без владельца | ALARM |
+| 32–36 с | P1 возвращается; без re-ID это «посторонний» | ALARM (bystander_near) |
+| 36–42 с | сумку уносят | alarm_cleared (carried) |
+
+**Журнал** (`event_logger.py`) пишет CSV и JSONL и сохраняет снимки; про модель и интерфейс
+он ничего не знает — на входе событие из `logic.py` и два кадра. **Отчёт** (`report.py`)
+собирается из `session.json` и `events.jsonl`, поэтому пересобирается после сессии.
 
 ---
 
@@ -193,30 +241,60 @@ python -m unittest discover -s tests -v
 Все команды — из `src/`.
 
 ```bash
-# Полевой замер по videos/: сколько сумок находит модель, медианный размер бокса, мс/кадр
+# Полевой замер по videos/: детекции bag и person, доля кадров с сумкой,
+# медианный размер бокса, мс/кадр. --models принимает имена из weights/ или пути
 python eval/eval_videos.py
-python eval/eval_videos.py --models best26n_nodc_640 best26n --save-dir ../runs/field_dump
+python eval/eval_videos.py --models best12k --step 3 --save-dir ../runs/field_dump
 
-# Офлайн-прогон логики по видео (сколько тревог, какие события)
+# Офлайн-прогон логики по видео: сколько тревог и каких событий
 python eval/eval_logic.py
+python eval/eval_logic.py --stride 3     # имитация слабого ноутбука
 python eval/eval_logic.py --save-dir ../runs/logic_check --csv ../runs/logic_eval.csv
 
-# Проверка, что логика считает секунды, а не кадры: сравнение stride 1 и 3
+# Проверка, что логика считает секунды, а не кадры: сравнение stride 1 и 3 (допуск 1 с)
 python eval/eval_logic.py --check
+
+# mAP и P/R/F1 по классам на размеченном сплите; JSON в runs/eval/<weights>_<split>.json
+python eval/eval_dataset.py --weights ../weights/best12k.pt --split holdout
+python eval/eval_dataset.py --weights ../weights/best12k.pt --split valid --conf 0.40
 ```
 
-Метрики на `dataset/val` завышены (соседние кадры тех же видео попадают в train), поэтому честную оценку даёт только прогон по `videos/video1..4`.
+Метрики на `dataset/val` завышены (соседние кадры тех же видео попадают в train), поэтому честную оценку даёт только прогон по `videos/video1..4`. В `eval_dataset.py` честный сплит — `holdout`: там person-боксы размечены вручную, и метрика не измеряет согласие с учителем.
+
+`eval_logic.py` проверяет на реальных видео два правила: сумку несут — тревоги нет; сумку оставили — `ALARM` примерно через `ALARM_DELAY_SEC`.
 
 Работа с датасетом (нужен локальный `dataset/`, в git его нет):
 
-```bash
-python tools/check_dataset.py --splits all      # аудит разметки: полигоны, битые боксы, дубликаты
-python tools/merge_splits.py --apply            # пересборка dataset/all + data_all.yaml
-python tools/audit_duplicates.py --root ../dataset/12k-dataset   # dHash-кластеры и утечки между сплитами
-```
+| Скрипт | Что делает | Куда пишет |
+|---|---|---|
+| `tools/check_dataset.py` | аудит разметки: полигоны, боксы «на весь кадр», точные дубли, координаты вне `[0,1]`, вырожденные боксы, исключённые источники, пары image/label | только отчёт |
+| `tools/annotate_person.py` | разметка людей COCO-учителем (`person=0` → класс 1), уже готовые файлы пропускаются | `runs/12k_person_labels/` |
+| `tools/build_12k_merged.py` | собирает `12k_merged`: bag из ручной разметки, person от учителя, сплиты по dHash-кластерам, holdout с ручными person-боксами | `dataset/12k_merged/` |
+| `tools/audit_duplicates.py` | dHash + Hamming: near-duplicate кластеры и пересечения с `videos/` и `dataset/all` | отчёт, JSON/CSV в `runs/12k_audit/` |
+| `tools/merge_splits.py` | единый train из train/valid/test: исключение `dc_luggage`, md5-дубли | `dataset/all/` + `data_all.yaml` |
+| `tools/make_cctv_holdout.py` | `cctv/valid+test` → bbox-лейблы (смешанные segment/detection строки ломают ultralytics) | `dataset/cctv_holdout/` |
+| `tools/make_clean_split.py` | `dataset/all` без кадров из `cctv/valid+test` | `dataset/all_clean/` + `data_all_clean.yaml` |
+| `tools/make_contact_sheets.py` | контактные листы с боксами (bag — зелёный, person — синий) для визуальной проверки | `runs/12k_qc/` |
 
-Обучение. Каждый прогон пишется в отдельную папку `runs/train/<name>`, рабочая модель
-`weights/best26n_nodc_640.pt` при этом не перезаписывается:
+Полезные режимы:
+
+* `merge_splits.py` без `--apply` только показывает отчёт, `--overwrite` перезаписывает `dataset/all`; `--val-frac` уводит часть кадров в `dataset/all_val` — это контроль кривой обучения, а не честная метрика.
+* `build_12k_merged.py --dry-run` печатает план; картинки хардлинкуются, оригинал не меняется.
+* `audit_duplicates.py --max-dist` задаёт порог Hamming для кластеров.
+* `make_cctv_holdout.py` и `make_clean_split.py` перезаписывают результат только с `--force`.
+
+Что стоит знать про эти данные:
+
+* В `12k-dataset` размечены только сумки, людей почти нет (344 картинки), поэтому людей размечает pretrained COCO-модель. На инференсе остаётся **одна** сеть — это офлайн-дистилляция, а не ансамбль.
+* В исходном Roboflow-сплите 1 000 картинок имеют near-duplicate в другом сплите, поэтому `build_12k_merged.py` пересобирает сплиты целыми dHash-кластерами.
+* `dc_luggage` — комнатные фото рюкзаков: 713 боксов занимают больше половины кадра, 55 — весь кадр. Из-за них модель учит «сумка = крупная текстура», поэтому источник исключён по умолчанию.
+* В экспорте `cctv` часть строк размечена полигонами; ultralytics выбрасывает файл целиком с ошибкой «labels mix segment and detection rows». Поэтому из 108 valid-картинок оценивались 92, из 60 test — 47.
+* `dataset/all` собран из train/valid/test, а `cctv` содержит те же кадры: 155 из 168 кадров holdout модель уже видела. Отсюда `make_clean_split.py` и `cctv_holdout`.
+* Сплиты сделаны по кадрам, а не по видео, поэтому val/test пересекаются с train. Для маленького датасета выгоднее учить на всём, а честно мерить на `videos/` и `cctv_holdout`.
+
+Обучение. Дефолты: 65 эпох, batch 32, `imgsz` 640, seed 0. Каждый прогон пишется в отдельную
+папку `runs/train/<name>`, рабочая модель `weights/best12k.pt` при этом не перезаписывается —
+веса из прогона копируются в `weights/` вручную и осознанно:
 
 ```bash
 python train.py --data ../dataset/12k_merged/data.yaml --name cctv_yolo26n_12k_640
@@ -232,54 +310,14 @@ python train.py --data ../dataset/data_all.yaml --name finetune_all_640 \
 
 * `src/` — исходный код:
   * **приложение (демо)**: `config.py` — конфиг (модель, классы, пороги, цвета); `tracker.py` — детекция и ByteTrack; `logic.py` — статусы и события; `visualizer.py` — отрисовка; `pipeline.py` — конвейер обработки (потоки чтения и инференса, общий для GUI и консоли); `web_app.py` + `web/index.html` — панель оператора в браузере; `gui.py` — запасное окно на Tkinter; `test.py` — консольная точка входа; `event_logger.py` — журнал событий со снимками; `report.py` — HTML-отчёт сессии.
-  * **тесты** (`src/tests/`): `test_core.py` — автотесты логики и журнала; `tools/sim_scene.py` — синтетическая сцена для проверки без модели.
+  * **тесты** (`src/tests/`): `test_core.py` — логика и журнал; `test_web.py` — HTTP-слой панели; `tools/sim_scene.py` — синтетическая сцена для проверки без модели.
   * **обучение**: `train.py` — обёртка над ultralytics с дефолтами проекта.
   * **оценка** (`src/eval/`): `eval_videos.py` — полевой замер по `videos/`; `eval_logic.py` — офлайн-прогон логики и FPS; `eval_dataset.py` — mAP и P/R по классам на сплите.
-  * **инструменты** (`src/tools/`): `audit_duplicates.py` — dHash-кластеры и утечки между сплитами; `annotate_person.py` — авторазметка людей COCO-учителем; `build_12k_merged.py` — сборка `dataset/12k_merged`; `make_contact_sheets.py` — контактные листы для визуальной проверки; `check_dataset.py` — аудит разметки; `merge_splits.py` — сборка `dataset/all`; `download_model.py` — базовые веса Ultralytics.
+  * **инструменты** (`src/tools/`): `audit_duplicates.py` — dHash-кластеры и утечки между сплитами; `annotate_person.py` — авторазметка людей COCO-учителем; `build_12k_merged.py` — сборка `dataset/12k_merged`; `make_cctv_holdout.py` — честный holdout из `cctv`; `make_clean_split.py` — train без кадров holdout; `make_contact_sheets.py` — контактные листы для визуальной проверки; `check_dataset.py` — аудит разметки; `merge_splits.py` — сборка `dataset/all`; `download_model.py` — базовые веса Ultralytics.
 * `configs/custom_tracker.yaml` — настройки ByteTrack.
 * `weights/` — веса моделей (`.pt`), **в git не хранятся**.
-* `videos/` — тестовые ролики для демо и оценки (`video1..11`, из ABODA); **в git не хранятся**, см. «Данные и атрибуция».
+* `videos/` — тестовые ролики для демо и оценки (`video1..11`); **в git не хранятся**: скачайте из [ABODA](https://github.com/kevinlin311tw/ABODA) и положите в `videos/`.
 * `dataset/`, `runs/`, `mem/` — датасет, результаты обучений и локальные заметки, **в git не хранятся**.
-
----
-
-## Данные и атрибуция
-
-* **`videos/`** — 11 последовательностей из **ABODA** (ABandoned Objects DAtaset),
-  [github.com/kevinlin311tw/ABODA](https://github.com/kevinlin311tw/ABODA).
-  Файла лицензии в репозитории ABODA нет (GitHub API отдаёт `license: null`),
-  поэтому ролики **не распространяются вместе с проектом**: скачайте их из
-  исходного репозитория и положите в `videos/`.
-
-  Citation: K. Lin, S.-C. Chen, C.-S. Chen, D.-T. Lin, Y.-P. Hung,
-  "Abandoned Object Detection via Temporal Consistency Modeling and
-  Back-Tracing Verification for Visual Surveillance", *IEEE Transactions on
-  Information Forensics and Security*, vol. 10, no. 7, 2015,
-  DOI [10.1109/TIFS.2015.2408263](https://doi.org/10.1109/TIFS.2015.2408263).
-
-  Важно: 11 роликов — это **5 сцен**: `video1`; `video2/3/4` (одна запись);
-  `video5/6` (одна камера, 5 — ИК-ночь, 6 — видимый свет); `video7/8/9/10`
-  (одна запись); `video11`. Независимых сцен для проверки — пять, а не
-  одиннадцать.
-* **`dataset/cctv`** — экспорт Roboflow, лицензия **CC BY 4.0** (атрибуция —
-  в `README.dataset.txt` внутри архива).
-* **`dataset/12k-dataset`** — публичный Roboflow-экспорт; условия и атрибуция
-  указаны в его `README.dataset.txt`.
-
-Лицензии инструментов: Ultralytics YOLO — **AGPL-3.0**, это надо учитывать при
-публикации проекта и весов. Код и веса сторонних репозиториев не копируются.
-
----
-
-## Известные ограничения
-
-* Сумка, лежащая на полу, детектится нестабильно: в обучающей выборке почти нет вида сверху. Модель `best12k.pt` её видит, а файнтюны на своём домене — часто нет.
-* Иногда человек у края кадра (частично обрезанный) классифицируется как `bag` — путаница классов `person → bag`.
-* Полный путь до `ALARM` воспроизведён на `video1` с моделью `best12k.pt`: владелец уходит, сумка стоит, тревога на 15-й секунде (`runs/demo_check_12k/video1_alarm.jpg`). На остальных видео сцены «положил и ушёл дольше 15 с» нет, поэтому тревог там ноль.
-* Честная количественная оценка — только `dataset/cctv_holdout` (108+60 кадров). `videos/` разметки не имеют и служат качественной проверкой на 5 сценах.
-* Ускорение через OpenVINO INT8 для слабых ноутбуков — в планах, пока не реализовано.
-* Подписи на самом кадре — латиницей (`cv2.putText` не умеет кириллицу); интерфейс, журнал и отчёт — на русском.
-* Без re-ID: если владелец пропал из кадра дольше `PERSON_MISSING_SEC` и вернулся, система видит в нём нового человека («посторонний»). Тревога снимается, когда сумку уносят.
 
 ---
 

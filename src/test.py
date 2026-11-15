@@ -1,17 +1,4 @@
-"""Консольный запуск без GUI: окно OpenCV + журнал событий со снимками.
-
-    python test.py                                  # видео из config.VIDEO_PATH
-    python test.py --source ../videos/video2.avi
-    python test.py --camera --source 0              # веб-камера
-    python test.py --camera --source rtsp://...     # IP-камера
-    python test.py --record                         # + видео с разметкой в папку сессии
-    python test.py --no-log                         # без журнала (как раньше)
-
-Окно закрывается клавишей q, пробел — пауза, s — ручной снимок.
-Журнал и отчёт: runs/sessions/<дата_время>/ (report.html открывается в браузере).
-
-Вся обработка — в pipeline.Pipeline (тот же код использует gui.py).
-"""
+"""Консольный запуск без GUI: окно OpenCV и журнал событий со снимками."""
 
 import argparse
 import time
@@ -25,7 +12,6 @@ from pipeline import Pipeline
 
 def parse_args():
     p = argparse.ArgumentParser()
-    # по умолчанию — тестовое видео из конфига; для камеры: --source rtsp://...
     p.add_argument("--source", default=str(cfg.VIDEO_PATH),
                    help="путь к видеофайлу или URL камеры (rtsp://, http://, 0 для веб-камеры)")
     p.add_argument("--camera", action="store_true",

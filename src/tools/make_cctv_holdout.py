@@ -1,19 +1,5 @@
 #!/usr/bin/env python3
-"""Собрать честный holdout из dataset/cctv: valid+test, метки только в boxes.
-
-Проблема: в экспорте cctv часть строк размечена полигонами (class + x1 y1 x2
-y2 ...), а Ultralytics на смешанном файле выбрасывает ВЕСЬ файл с сообщением
-"labels mix segment and detection rows". Из-за этого из 108 valid-картинок
-оценивались только 92, из 60 test — 47.
-
-Скрипт копирует картинки cctv/valid+test в dataset/cctv_holdout/ и переводит
-полигоны в bounding box (min/max по координатам). Если рядом лежит уже
-сконвертированная метка dataset/<split>/labels, она используется для сверки.
-
-Запуск (из папки src/):
-    python tools/make_cctv_holdout.py
-    python tools/make_cctv_holdout.py --force
-"""
+"""Честный holdout из dataset/cctv: полигоны переводятся в bbox."""
 
 import argparse
 import re

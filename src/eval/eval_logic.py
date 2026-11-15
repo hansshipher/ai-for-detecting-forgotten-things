@@ -1,20 +1,5 @@
 #!/usr/bin/env python3
-"""Офлайн-прогон логики по видео: проверяем, что система не врёт.
-
-Что проверяется:
-
-  1. Сумку НЕСУТ — тревоги быть не может (правило стационарности).
-  2. Сумку ОСТАВИЛИ — ALARM появляется примерно через ALARM_DELAY_SEC.
-  3. Пропуск кадров (--check) не сдвигает время тревоги больше чем на 1 с.
-     Это прямая проверка, что логика считает секунды, а не кадры.
-
-Запуск (из папки src/):
-    python eval/eval_logic.py                          # все видео, каждый кадр
-    python eval/eval_logic.py --stride 3               # имитация слабого ноутбука
-    python eval/eval_logic.py --check                  # сравнить stride 1 и 3
-    python eval/eval_logic.py --save-dir ../runs/logic_check
-    python eval/eval_logic.py --csv ../runs/logic_eval.csv
-"""
+"""Офлайн-прогон логики по видео: тревоги, события, FPS и проверка счёта времени."""
 
 import argparse
 import csv

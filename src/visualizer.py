@@ -1,3 +1,5 @@
+"""Отрисовка боксов, статусов и связей «человек ↔ сумка»."""
+
 import cv2
 
 import config as cfg
@@ -88,10 +90,6 @@ class Visualizer:
                 if bystander_pos is not None:
                     cv2.line(frame, center, bystander_pos, cfg.COLOR_WARNING, 1, cv2.LINE_AA)
 
-            if status in ("WARNING", "ALARM"):
-                radius = int(bag_data.get("radius", cfg.OWNER_RADIUS_MIN_PX))
-                cv2.circle(frame, center, radius, color, 1, lineType=cv2.LINE_AA)
-
             thickness = 3 if status == "ALARM" else 2
             cv2.rectangle(frame, (x1, y1), (x2, y2), color, thickness)
 
@@ -128,16 +126,16 @@ if __name__ == "__main__":
     }
     tracked_bags = {
         7: {"status": "WARNING", "reason": "owner_left", "elapsed": 12.3,
-            "bbox": (100, 200, 160, 280), "radius": 90, "missing_sec": 0.0,
+            "bbox": (100, 200, 160, 280), "missing_sec": 0.0,
             "owner_pos": (500, 400)},
         9: {"status": "ALARM", "reason": "owner_left", "elapsed": 16.0,
-            "bbox": (560, 300, 620, 380), "radius": 70, "missing_sec": 0.0,
+            "bbox": (560, 300, 620, 380), "missing_sec": 0.0,
             "owner_pos": None},
         11: {"status": "WARNING", "reason": "bystander", "elapsed": 8.0,
-             "bbox": (300, 100, 350, 160), "radius": 60, "missing_sec": 0.0,
+             "bbox": (300, 100, 350, 160), "missing_sec": 0.0,
              "owner_pos": None, "bystander_pos": (120, 340)},
         13: {"status": "SAFE", "reason": "carried", "elapsed": 0.0,
-             "bbox": (400, 60, 450, 130), "radius": 50, "missing_sec": 2.0},
+             "bbox": (400, 60, 450, 130), "missing_sec": 2.0},
     }
 
     vis = Visualizer()
