@@ -1,3 +1,5 @@
+"""Детекция YOLO и трекинг ByteTrack: люди и сумки с track_id."""
+
 import cv2 as cv
 from pathlib import Path
 from ultralytics import YOLO
@@ -9,7 +11,10 @@ class ObjTracker:
     def __init__(self, model_path=None):
         path = Path(model_path) if model_path is not None else Path(cfg.MODEL_PATH)
         if not path.is_absolute():
-            path = cfg.BASE_DIR / path
+            # Относительный путь ищем и от текущей папки, и от корня проекта:
+            # работают и `weights/x.pt`, и `../weights/x.pt` при запуске из src/.
+            candidates = [Path.cwd() / path, cfg.BASE_DIR / path]
+            path = next((c for c in candidates if c.exists()), candidates[0])
         if not path.exists():
             raise FileNotFoundError(f"Model not found: {path}")
         self.model = YOLO(str(path))

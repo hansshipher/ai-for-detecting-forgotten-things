@@ -1,17 +1,5 @@
 #!/usr/bin/env python3
-"""Контактные листы для визуальной проверки авторазметки.
-
-Собирает сетки кадров с нарисованными боксами: bag — зелёный, person — синий.
-Нужно, чтобы глазами найти систематические ошибки учителя (памятники,
-манекены, отражения) до того, как они попадут в обучение.
-
-Запуск (из папки src/):
-    python tools/make_contact_sheets.py
-    python tools/make_contact_sheets.py --split holdout --n 40 --per-sheet 20
-    python tools/make_contact_sheets.py --split train --only-person
-
-Выход: runs/12k_qc/sheet_<split>_<i>.jpg
-"""
+"""Контактные листы с боксами для визуальной проверки авторазметки."""
 
 import argparse
 import random

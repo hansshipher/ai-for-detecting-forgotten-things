@@ -1,22 +1,5 @@
 #!/usr/bin/env python3
-"""Авторазметка людей COCO-детектором (учителем).
-
-Зачем: в 12k-dataset размечены только сумки (bag), людей почти нет
-(344 картинки). Ручная разметка 12k картинок нереальна, поэтому людей
-размечает pretrained COCO-модель, а мы учим на этих лейблах свою
-маленькую yolo26n (офлайн-дистилляция: на инференсе остаётся ОДНА сеть).
-
-Классы COCO: person = 0 -> в наших лейблах это класс 1 (bag = 0).
-
-Запуск (из папки src/):
-    python tools/annotate_person.py
-    python tools/annotate_person.py --conf 0.45 --imgsz 1280
-    python tools/annotate_person.py --splits train --overwrite
-
-Результат: runs/12k_person_labels/<split>/<stem>.txt
-    строки вида "1 cx cy w h" (нормированные, как в YOLO).
-Скрипт возобновляемый: уже готовые файлы пропускаются без --overwrite.
-"""
+"""Авторазметка людей COCO-детектором для обучения своей модели."""
 
 import argparse
 import json

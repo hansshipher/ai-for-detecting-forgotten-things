@@ -1,17 +1,5 @@
 #!/usr/bin/env python3
-"""Оценка модели на размеченном сплите (mAP + P/R/F1 по классам).
-
-Зачем отдельный скрипт: ultralytics.val() печатает красиво, но нам нужно
-сравнивать модели между собой в одном формате и сохранять JSON в runs/.
-Плюс holdout-сплит (ручная разметка людей) — единственное честное место,
-где person-метрика не измеряет согласие с учителем.
-
-Запуск (из папки src/):
-    python eval/eval_dataset.py --weights ../weights/best26n_nodc_640.pt --split holdout
-    python eval/eval_dataset.py --weights ../runs/train/x/weights/best.pt --split valid --conf 0.40
-
-Выход: печать таблицы + runs/eval/<weights_stem>_<split>.json
-"""
+"""mAP и P/R/F1 по классам на размеченном сплите, JSON в runs/eval/."""
 
 import argparse
 import json

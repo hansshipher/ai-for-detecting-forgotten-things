@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Пост наблюдения — оставленные вещи</title>
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%2334C79A'/%3E%3Crect x='9' y='12' width='14' height='11' rx='3' fill='%23121A24'/%3E%3Cpath d='M13 12v-2a3 3 0 0 1 6 0v2' stroke='%23121A24' stroke-width='2' fill='none'/%3E%3C/svg%3E">
+<style>
+:root{
+  --bg:#121A24; --panel:#18222E; --panel-2:#1F2B39; --line:#2A394A; --line-2:#344658;
+  --text:#E8EDF3; --muted:#8D9AAD; --faint:#5F6E82;
+  --safe:#34C79A; --warn:#F5B43C; --alarm:#FF4F5E; --accent:#6EA8FF;
+  --status:var(--faint);
+  --r-stage:20px; --r-panel:14px; --r-ctl:10px;
+  --font:"Segoe UI Variable Text","Segoe UI Variable","Segoe UI",system-ui,-apple-system,"Inter",Roboto,sans-serif;
+  --font-d:"Segoe UI Variable Display","Segoe UI Variable","Segoe UI",system-ui,-apple-system,"Inter",Roboto,sans-serif;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html,body{margin:0;height:100%}
+body{background:
+  radial-gradient(1200px 600px at 20% -10%, #1B2838 0%, transparent 60%),
+  var(--bg);color:var(--text);font:15px/1.5 var(--font);-webkit-font-smoothing:antialiased}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+.num{font-variant-numeric:tabular-nums}
+
+/* ---------- верхняя панель ---------- */
+.top{display:flex;align-items:center;gap:16px;padding:14px 24px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:12px;min-width:240px}
+.brand svg{flex:none}
+.brand b{font:600 17px/1.2 var(--font-d);letter-spacing:-.01em}
+.brand small{display:block;color:var(--muted);font-size:12.5px}
+.source{flex:1;display:flex;gap:8px;align-items:center;max-width:760px}
+.field{background:var(--panel-2);border:1px solid var(--line-2);border-radius:var(--r-ctl);height:40px;padding:0 12px}
+select.field{flex:1;min-width:0;appearance:none;cursor:pointer;padding-right:34px;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238D9AAD' stroke-width='1.6' fill='none'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center}
+input.field{flex:1;min-width:0}
+input.field::placeholder{color:var(--faint)}
+.btn{height:40px;padding:0 16px;border-radius:var(--r-ctl);border:1px solid var(--line-2);
+  background:var(--panel-2);cursor:pointer;display:inline-flex;align-items:center;gap:8px;white-space:nowrap;
+  transition:background .15s,border-color .15s,opacity .15s}
+.btn:hover{background:#273548;border-color:#41566C}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.primary{background:var(--accent);border-color:var(--accent);color:#0D1622;font-weight:600}
+.btn.primary:hover{background:#86B7FF}
+.btn.danger{color:#FFB3BA;border-color:#5B2F39}
+.btn.danger:hover{background:#3A2129}
+.btn.icon{width:40px;padding:0;justify-content:center}
+.sys{margin-left:auto;display:flex;gap:8px;align-items:center}
+.live{display:inline-flex;align-items:center;gap:8px;color:var(--muted);font-size:13.5px;padding:0 8px}
+.live i{width:8px;height:8px;border-radius:50%;background:var(--faint)}
+.live.on i{background:var(--safe);box-shadow:0 0 0 4px #34C79A33}
+
+/* ---------- раскладка ---------- */
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:20px;padding:20px 24px 24px;
+  height:calc(100% - 69px)}
+.left{display:flex;flex-direction:column;gap:16px;min-height:0}
+
+/* ---------- сцена: главный акцент ---------- */
+.stage{position:relative;aspect-ratio:16/9;max-height:62vh;background:#0C121A;border-radius:var(--r-stage);
+  overflow:hidden;box-shadow:0 0 0 2px var(--status),0 0 48px -8px var(--status);
+  transition:box-shadow .4s}
+.stage img{width:100%;height:100%;object-fit:contain;display:block}
+.stage .empty{position:absolute;inset:0;display:grid;place-content:center;text-align:center;gap:14px;padding:24px;color:var(--muted)}
+.stage .empty h2{margin:0;color:var(--text);font:600 22px/1.25 var(--font-d);letter-spacing:-.01em}
+.stage .empty p{margin:0;max-width:44ch}
+.stage .tag{position:absolute;left:14px;top:14px;display:flex;gap:8px}
+.stage .tag span{background:#0C121ACC;backdrop-filter:blur(6px);border-radius:999px;padding:4px 12px;font-size:13px;color:#C9D3DF}
+.stage .fps{position:absolute;right:14px;top:14px;font-size:12.5px;color:#C9D3DF;background:#0C121ACC;border-radius:999px;padding:3px 10px}
+.stage .bar{position:absolute;left:0;bottom:0;height:3px;background:var(--accent);width:0;transition:width .4s linear}
+body[data-status="ALARM"] .stage{animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{box-shadow:0 0 0 3px var(--alarm),0 0 80px 0 var(--alarm)}}
+@media (prefers-reduced-motion:reduce){body[data-status="ALARM"] .stage{animation:none}}
+
+.controls{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.controls .spacer{flex:1}
+
+/* ---------- статус и обратный отсчёт ---------- */
+.verdict{flex:1;min-width:0;display:grid;grid-template-columns:auto 1fr;gap:2px 16px;align-items:center}
+.verdict .light{grid-row:1;align-self:center;width:14px;height:14px;border-radius:50%;background:var(--status);box-shadow:0 0 0 6px color-mix(in srgb,var(--status) 20%,transparent)}
+.verdict h1{margin:0;font:650 28px/1.15 var(--font-d);letter-spacing:-.02em}
+.verdict p{margin:0;color:var(--muted);grid-column:2}
+
+.bags{display:flex;flex-direction:column;gap:10px;overflow:auto;min-height:0}
+.bag{display:grid;grid-template-columns:120px 1fr 120px;gap:16px;align-items:center;
+  background:var(--panel);border:1px solid var(--line);border-radius:var(--r-panel);padding:12px 16px}
+.bag .name{font-weight:600}
+.bag .name small{display:block;color:var(--muted);font-weight:400;font-size:13px}
+.track{height:10px;background:var(--panel-2);border-radius:999px;overflow:hidden}
+.track i{display:block;height:100%;width:0;border-radius:999px;background:var(--c);transition:width .4s linear}
+.bag .t{text-align:right;color:var(--muted)}
+.bag .t b{color:var(--text);font-size:17px}
+.bag[data-s="SAFE"]{--c:var(--safe)} .bag[data-s="WARNING"]{--c:var(--warn)} .bag[data-s="ALARM"]{--c:var(--alarm)}
+.bag[data-s="ALARM"]{border-color:#6B2A33;background:linear-gradient(90deg,#3A1C24,var(--panel) 60%)}
+
+/* ---------- правая колонка ---------- */
+aside{display:flex;flex-direction:column;gap:16px;min-height:0}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:var(--r-panel)}
+.scene{display:grid;grid-template-columns:repeat(3,1fr)}
+.scene div{padding:14px 16px}
+.scene div+div{border-left:1px solid var(--line)}
+.scene b{display:block;font:650 24px/1.1 var(--font-d)}
+.scene span{color:var(--muted);font-size:13px;white-space:nowrap}
+.scene .al b{color:var(--alarm)}
+.feed{flex:1;display:flex;flex-direction:column;min-height:0}
+.feed header{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 10px}
+.feed h3{margin:0;font:600 15px var(--font-d)}
+.feed header label{color:var(--muted);font-size:13px;display:flex;gap:6px;align-items:center;cursor:pointer}
+.feed ol{list-style:none;margin:0;padding:0 8px 8px;overflow:auto;flex:1}
+.feed li{display:grid;grid-template-columns:8px 1fr auto;gap:12px;align-items:start;padding:10px 8px;border-radius:10px}
+.feed li+li{border-top:1px solid #223041}
+.feed li .dot{width:8px;height:8px;border-radius:50%;margin-top:8px;background:var(--faint)}
+.feed li[data-l="alarm"] .dot{background:var(--alarm)} .feed li[data-l="warning"] .dot{background:var(--warn)} .feed li[data-l="info"] .dot{background:var(--safe)}
+.feed li .what{font-weight:550}
+.feed li .sub{color:var(--muted);font-size:13px}
+.feed li time{color:var(--muted);font-size:13px}
+.feed li img{grid-column:2/4;width:100%;max-height:170px;object-fit:cover;border-radius:10px;margin-top:6px;cursor:zoom-in;border:1px solid var(--line-2)}
+.feed li[data-l="alarm"]{background:#2A1A22}
+.feed .none{color:var(--muted);padding:20px 16px;text-align:center}
+.reportbar{padding:12px;border-top:1px solid var(--line);display:none}
+.reportbar.show{display:block}
+.reportbar a{display:flex;justify-content:center;text-decoration:none}
+
+/* ---------- выдвижные панели ---------- */
+.drawer{position:fixed;top:0;right:0;height:100%;width:400px;max-width:100%;background:var(--panel);border-left:1px solid var(--line-2);
+  transform:translateX(100%);transition:transform .25s ease;z-index:20;display:flex;flex-direction:column}
+.drawer.open{transform:none;box-shadow:-30px 0 60px #0008}
+.drawer header{display:flex;justify-content:space-between;align-items:center;padding:18px 20px;border-bottom:1px solid var(--line)}
+.drawer h3{margin:0;font:600 18px var(--font-d)}
+.drawer .body{padding:12px 20px 24px;overflow:auto}
+.row{padding:14px 0;border-bottom:1px solid var(--line)}
+.row .lbl{display:flex;justify-content:space-between;margin-bottom:8px}
+.row .lbl span{color:var(--muted)}
+.row small{display:block;color:var(--muted);margin-top:6px;font-size:13px}
+input[type=range]{width:100%;accent-color:var(--accent)}
+.switch{display:flex;justify-content:space-between;align-items:center;gap:16px;cursor:pointer}
+.switch input{appearance:none;width:42px;height:24px;border-radius:999px;background:var(--line-2);position:relative;cursor:pointer;flex:none;transition:background .15s}
+.switch input::after{content:"";position:absolute;top:3px;left:3px;width:18px;height:18px;border-radius:50%;background:#fff;transition:transform .15s}
+.switch input:checked{background:var(--accent)}
+.switch input:checked::after{transform:translateX(18px)}
+.hist a{display:block;padding:12px 0;border-bottom:1px solid var(--line);color:var(--text);text-decoration:none}
+.hist a:hover b{color:var(--accent)}
+.hist span{display:block;color:var(--muted);font-size:13px}
+.scrim{position:fixed;inset:0;background:#0007;opacity:0;pointer-events:none;transition:opacity .2s;z-index:10}
+.scrim.open{opacity:1;pointer-events:auto}
+.lightbox{position:fixed;inset:0;background:#05080CE6;display:none;place-items:center;z-index:30;padding:32px;cursor:zoom-out}
+.lightbox.open{display:grid}
+.lightbox img{max-width:100%;max-height:100%;border-radius:12px}
+.toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);opacity:0;background:#2B3A4D;border:1px solid var(--line-2);
+  padding:10px 18px;border-radius:12px;transition:.25s;z-index:40;max-width:min(640px,90vw)}
+.toast.show{opacity:1;transform:translateX(-50%)}
+.toast.err{background:#3A1C24;border-color:#6B2A33}
+
+@media (max-width:1100px){
+  .layout{grid-template-columns:1fr;height:auto}
+  .brand{min-width:0} .brand small{display:none}
+  .top{flex-wrap:wrap}
+  .source{order:3;max-width:none;flex-basis:100%}
+  .bag{grid-template-columns:96px 1fr 96px}
+}
+@media (max-width:700px){
+  .top,.layout{padding-left:14px;padding-right:14px}
+  .source{flex-wrap:wrap} .source select{flex-basis:100%} .source .btn{flex:1;justify-content:center}
+  .verdict{flex-basis:100%} .verdict h1{font-size:22px}
+  .controls .btn{flex:1;justify-content:center}
+  .bag{grid-template-columns:84px 1fr 84px;gap:10px;padding:12px}
+}
+</style>
+</head>
+<body data-status="IDLE">
+
+<div class="top">
+  <div class="brand">
+    <svg width="34" height="34" viewBox="0 0 32 32" aria-hidden="true"><rect width="32" height="32" rx="9" fill="#34C79A"/><rect x="9" y="12" width="14" height="11" rx="3" fill="#121A24"/><path d="M13 12v-2a3 3 0 0 1 6 0v2" stroke="#121A24" stroke-width="2" fill="none"/></svg>
+    <div><b>Пост наблюдения</b><small>Поиск оставленных вещей</small></div>
+  </div>
+  <div class="source">
+    <select class="field" id="src" aria-label="Источник видео"></select>
+    <input class="field" id="srcText" placeholder="rtsp://адрес камеры или путь к файлу" hidden>
+    <button class="btn primary" id="startBtn">Начать наблюдение</button>
+  </div>
+  <div class="sys">
+    <span class="live" id="live"><i></i><span>Остановлено</span></span>
+    <button class="btn icon" id="histBtn" title="Прошлые сессии" aria-label="Прошлые сессии">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"/><path d="M3 3v5h5M12 7v5l3 2"/></svg></button>
+    <button class="btn icon" id="setBtn" title="Настройки" aria-label="Настройки">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M4 6h10M18 6h2M4 12h4M12 12h8M4 18h12M20 18h0"/><circle cx="16" cy="6" r="2"/><circle cx="10" cy="12" r="2"/><circle cx="18" cy="18" r="2"/></svg></button>
+  </div>
+</div>
+
+<div class="layout">
+  <section class="left">
+    <div class="stage">
+      <img id="video" alt="Видео с камеры" hidden>
+      <div class="empty" id="empty">
+        <h2>Камера не подключена</h2>
+        <p>Выберите видео или камеру сверху и нажмите «Начать наблюдение». Без модели можно запустить тестовую сцену.</p>
+        <div><button class="btn" id="simBtn">Запустить тестовую сцену</button></div>
+      </div>
+      <div class="tag" id="tag" hidden><span id="tagSrc"></span><span class="num" id="tagTime"></span></div>
+      <div class="fps num" id="fps" hidden></div>
+      <div class="bar" id="progress"></div>
+    </div>
+
+    <div class="controls">
+      <div class="verdict">
+        <div class="light"></div>
+        <h1 id="vTitle">Наблюдение не идёт</h1>
+        <p id="vSub">Здесь появится состояние сцены.</p>
+      </div>
+      <button class="btn" id="pauseBtn" disabled>Пауза</button>
+      <button class="btn" id="snapBtn" disabled>Сделать снимок</button>
+      <button class="btn danger" id="stopBtn" disabled>Остановить</button>
+    </div>
+
+    <div class="bags" id="bags"></div>
+  </section>
+
+  <aside>
+    <div class="panel scene">
+      <div><b class="num" id="nPersons">0</b><span>людей сейчас</span></div>
+      <div><b class="num" id="nBags">0</b><span>сумок сейчас</span></div>
+      <div class="al"><b class="num" id="nAlarms">0</b><span>тревог всего</span></div>
+    </div>
+    <div class="panel feed">
+      <header><h3>События</h3><label><input type="checkbox" id="showDebug"> служебные</label></header>
+      <ol id="feed"><li class="none" style="display:block">Событий пока нет. Тревоги и снимки появятся здесь.</li></ol>
+      <div class="reportbar" id="reportBar"><a class="btn primary" id="reportLink" target="_blank">Открыть отчёт сессии</a></div>
+    </div>
+  </aside>
+</div>
+
+<div class="scrim" id="scrim"></div>
+
+<div class="drawer" id="settings" role="dialog" aria-label="Настройки">
+  <header><h3>Настройки</h3><button class="btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="body">
+    <div class="row"><div class="lbl">Задержка тревоги <span class="num" id="delayVal"></span></div>
+      <input type="range" id="delay" min="3" max="60" step="1">
+      <small>Сколько сумка должна простоять без владельца, прежде чем поднимется тревога.</small></div>
+    <div class="row"><div class="lbl">Порог уверенности <span class="num" id="confVal"></span></div>
+      <input type="range" id="conf" min="0.1" max="0.9" step="0.05">
+      <small>Ниже — модель замечает больше сумок, но чаще ошибается.</small></div>
+    <div class="row"><label class="switch">Тревога, даже если рядом посторонний<input type="checkbox" id="escalate"></label>
+      <small>Обычно посторонний рядом с сумкой только переводит её «под наблюдение».</small></div>
+    <div class="row"><label class="switch">Звук при тревоге<input type="checkbox" id="sound" checked></label></div>
+    <div class="row"><label class="switch">Сохранять снимки событий<input type="checkbox" id="snapsOn" checked></label></div>
+    <div class="row"><label class="switch">Записывать видео с разметкой<input type="checkbox" id="record"></label></div>
+    <div class="row"><label class="switch">Не отставать от реального времени<input type="checkbox" id="realtime" checked></label>
+      <small>Если выключить, обрабатывается каждый кадр файла: точнее, но медленнее.</small></div>
+    <div class="row"><div class="lbl">Модель</div><select class="field" id="model" style="width:100%"></select></div>
+  </div>
+</div>
+
+<div class="drawer" id="history" role="dialog" aria-label="Прошлые сессии">
+  <header><h3>Прошлые сессии</h3><button class="btn icon" data-close aria-label="Закрыть">✕</button></header>
+  <div class="body hist" id="histList"></div>
+</div>
+
+<div class="lightbox" id="lightbox"><img alt="Снимок события"></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const $ = s => document.querySelector(s);
+const api = (p, body) => fetch(p, body === undefined ? {} : {method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(body)})
+  .then(async r => { const j = await r.json().catch(() => ({})); if (!r.ok) throw new Error(j.error || r.statusText); return j; });
+
+let OPT = null, lastId = 0, running = false, session = null, delay = 15, events = [];
+
+const STATUS = {
+  IDLE:   {c:"var(--faint)"}, SAFE:{c:"var(--safe)"}, WARNING:{c:"var(--warn)"}, ALARM:{c:"var(--alarm)"}
+};
+const fmt = s => { s = Math.max(0, +s || 0); const m = Math.floor(s / 60); return `${String(m).padStart(2,"0")}:${(s % 60).toFixed(1).padStart(4,"0")}`; };
+const sec = s => (+s || 0).toFixed(1).replace(".", ",");
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+function toast(msg, err) {
+  const t = $("#toast"); t.textContent = msg; t.className = "toast show" + (err ? " err" : "");
+  clearTimeout(toast.t); toast.t = setTimeout(() => t.className = "toast", err ? 6000 : 2500);
+}
+
+/* ---------- звук ---------- */
+let audio;
+function beep() {
+  if (!$("#sound").checked) return;
+  try {
+    audio = audio || new (window.AudioContext || window.webkitAudioContext)();
+    [0, .25, .5].forEach(dt => {
+      const o = audio.createOscillator(), g = audio.createGain();
+      o.frequency.value = 1100; o.connect(g); g.connect(audio.destination);
+      g.gain.setValueAtTime(.0001, audio.currentTime + dt);
+      g.gain.exponentialRampToValueAtTime(.25, audio.currentTime + dt + .02);
+      g.gain.exponentialRampToValueAtTime(.0001, audio.currentTime + dt + .18);
+      o.start(audio.currentTime + dt); o.stop(audio.currentTime + dt + .2);
+    });
+  } catch (e) {}
+}
+
+/* ---------- источники ---------- */
+async function loadOptions() {
+  OPT = await api("/api/options");
+  const src = $("#src");
+  const opts = OPT.videos.map(v => `<option value="${esc(v.value)}">${esc(v.label)}</option>`);
+  if (!opts.length) opts.push(`<option value="" disabled>В папке videos/ нет роликов</option>`);
+  src.innerHTML = `<optgroup label="Видео из папки videos">${opts.join("")}</optgroup>
+    <optgroup label="Камеры"><option value="0" data-cam="1">Веб-камера этого компьютера</option>
+    <option value="__custom__" data-cam="1">IP-камера или свой файл…</option></optgroup>
+    <optgroup label="Проверка"><option value="${OPT.sim}">Тестовая сцена без модели</option></optgroup>`;
+  const def = OPT.videos.find(v => v.value === OPT.default_video) || OPT.videos[0];
+  src.value = def ? def.value : OPT.sim;
+  const m = $("#model");
+  const ws = OPT.weights.length ? OPT.weights : [{label: "best12k.pt (не скачана)", value: OPT.default_model}];
+  m.innerHTML = ws.map(w => `<option value="${esc(w.value)}">${esc(w.label)}</option>`).join("");
+  m.value = OPT.default_model;
+  applySettingsUI(OPT.settings);
+}
+$("#src").addEventListener("change", e => { $("#srcText").hidden = e.target.value !== "__custom__"; if (!$("#srcText").hidden) $("#srcText").focus(); });
+
+function applySettingsUI(s) {
+  delay = s.alarm_delay;
+  $("#delay").value = s.alarm_delay; $("#delayVal").textContent = `${Math.round(s.alarm_delay)} с`;
+  $("#conf").value = s.conf; $("#confVal").textContent = (+s.conf).toFixed(2).replace(".", ",");
+  $("#escalate").checked = s.escalate;
+}
+const pushSettings = () => api("/api/settings", {alarm_delay:+$("#delay").value, conf:+$("#conf").value, escalate:$("#escalate").checked})
+  .then(r => applySettingsUI(r.settings));
+["#delay", "#conf"].forEach(id => $(id).addEventListener("input", () => {
+  $("#delayVal").textContent = `${$("#delay").value} с`; $("#confVal").textContent = (+$("#conf").value).toFixed(2).replace(".", ",");
+}));
+["#delay", "#conf", "#escalate"].forEach(id => $(id).addEventListener("change", pushSettings));
+
+/* ---------- управление ---------- */
+async function start(sourceOverride) {
+  let source = sourceOverride ?? $("#src").value;
+  if (source === "__custom__") source = $("#srcText").value.trim();
+  if (!source) { toast("Укажите адрес камеры или путь к файлу.", true); return; }
+  const camera = !!$("#src").selectedOptions[0]?.dataset.cam && source !== OPT.sim && !sourceOverride
+    && (/^\d+$/.test(source) || /^(rtsp|https?):\/\//i.test(source));
+  $("#startBtn").disabled = true; $("#startBtn").textContent = "Запуск…";
+  try {
+    if (audio === undefined) { try { audio = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { audio = null; } }
+    await api("/api/start", {source, camera, model:$("#model").value, record:$("#record").checked,
+      snapshots:$("#snapsOn").checked, realtime:$("#realtime").checked});
+    events = []; lastId = 0; renderFeed();
+    $("#video").src = "/stream.mjpg?" + Date.now();
+  } catch (e) { toast(e.message, true); }
+  finally { $("#startBtn").textContent = "Начать наблюдение"; }
+}
+$("#startBtn").onclick = () => start();
+$("#simBtn").onclick = () => start(OPT.sim);
+$("#pauseBtn").onclick = () => api("/api/pause", {}).then(r => { $("#pauseBtn").textContent = r.paused ? "Продолжить" : "Пауза"; });
+$("#snapBtn").onclick = () => api("/api/snapshot", {}).then(() => toast("Снимок сохранён в журнал."));
+$("#stopBtn").onclick = () => { $("#stopBtn").disabled = true; api("/api/stop", {}).then(() => toast("Наблюдение остановлено, отчёт сохранён.")); };
+
+/* ---------- состояние ---------- */
+function verdict(s) {
+  if (!s.running) return s.session
+    ? ["Наблюдение остановлено", "Журнал и снимки сохранены. Отчёт можно открыть справа."]
+    : ["Наблюдение не идёт", "Здесь появится состояние сцены."];
+  if (s.paused) return ["Пауза", "Обработка остановлена, таймеры не идут."];
+  const bl = s.bag_list || [];
+  const alarm = bl.filter(b => b.status === "ALARM"), warn = bl.filter(b => b.status === "WARNING");
+  if (alarm.length) return [alarm.length > 1 ? `Тревога: оставлено сумок — ${alarm.length}` : `Тревога: сумка №${alarm[0].id} оставлена`,
+    `Без присмотра ${sec(alarm[0].elapsed)} с. Проверьте место и подтвердите событие.`];
+  if (warn.length) {
+    const w = warn[0];
+    return [`Сумка №${w.id} без присмотра`, w.reason === "bystander"
+      ? "Рядом посторонний — тревога заморожена, решение за оператором."
+      : `До тревоги ${sec(Math.max(0, delay - w.elapsed))} с, если владелец не вернётся.`];
+  }
+  if (bl.length) return ["Всё спокойно", bl.length === 1 ? "Сумка в кадре, владелец рядом." : `Сумок в кадре: ${bl.length}, владельцы рядом.`];
+  return ["Всё спокойно", "Оставленных вещей не видно."];
+}
+
+const REASON = {carried:"в руках", owner_near:"владелец рядом", new:"только появилась", owner_left:"владелец ушёл",
+  owner_unknown:"владелец неизвестен", bystander:"рядом посторонний"};
+
+function renderBags(list) {
+  const el = $("#bags");
+  el.innerHTML = (list || []).map(b => {
+    const pct = b.status === "SAFE" ? 0 : Math.min(100, b.elapsed / delay * 100);
+    const right = b.status === "SAFE" ? `<b>—</b>` : b.status === "ALARM"
+      ? `<b class="num">${sec(b.elapsed)} с</b><br>тревога` : `<b class="num">${sec(b.elapsed)}</b> из ${Math.round(delay)} с`;
+    return `<div class="bag" data-s="${b.status}"><div class="name">Сумка №${b.id}<small>${REASON[b.reason] || ""}</small></div>
+      <div class="track" title="Время без присмотра"><i style="width:${b.status === "ALARM" ? 100 : pct}%"></i></div>
+      <div class="t num">${right}</div></div>`;
+  }).join("");
+}
+
+function renderFeed() {
+  const dbg = $("#showDebug").checked;
+  const rows = events.filter(e => dbg || e.level !== "debug").slice().reverse();
+  const base = session ? `/sessions/${session}/` : "";
+  $("#feed").innerHTML = rows.length ? rows.map(e => {
+    const img = e.level === "alarm" || e.type === "manual_snapshot" ? (e.crop_path || e.frame_path) : "";
+    const sub = [e.bag_id >= 0 ? `сумка №${e.bag_id}` : "", e.reason, +e.elapsed_sec ? `${sec(e.elapsed_sec)} с без присмотра` : ""]
+      .filter(Boolean).join(", ");
+    return `<li data-l="${e.level}"><span class="dot"></span><div><div class="what">${esc(e.title)}</div>
+      <div class="sub">${esc(sub)}</div></div><time class="num">${e.wall_time || ""}</time>
+      ${img ? `<img loading="lazy" src="${base}${esc(img)}" data-full="${base}${esc(e.frame_path || img)}" alt="${esc(e.title)}">` : ""}</li>`;
+  }).join("") : `<li class="none" style="display:block">Событий пока нет. Тревоги и снимки появятся здесь.</li>`;
+}
+$("#showDebug").onchange = renderFeed;
+$("#feed").addEventListener("click", e => { if (e.target.tagName === "IMG") { $("#lightbox img").src = e.target.dataset.full; $("#lightbox").classList.add("open"); } });
+$("#lightbox").onclick = () => $("#lightbox").classList.remove("open");
+
+async function poll() {
+  try {
+    const s = await api(`/api/state?since=${lastId}`);
+    if (s.session !== session) { session = s.session; }
+    if (s.settings) delay = s.settings.alarm_delay;
+    if (s.events.length) {
+      events.push(...s.events); lastId = s.events[s.events.length - 1].id;
+      if (s.events.some(e => e.type === "alarm")) beep();
+      renderFeed();
+    }
+    const status = s.running ? (s.paused ? "IDLE" : (s.status || "SAFE")) : "IDLE";
+    document.body.dataset.status = status;
+    document.documentElement.style.setProperty("--status", STATUS[status].c);
+    const [t, sub] = verdict(s); $("#vTitle").textContent = t; $("#vSub").textContent = sub;
+
+    if (running && !s.running && s.error) toast(s.error, true);
+    running = s.running;
+    $("#live").classList.toggle("on", running && !s.paused);
+    $("#live span").textContent = running ? (s.paused ? "Пауза" : "Идёт наблюдение") : "Остановлено";
+    $("#startBtn").disabled = running || s.starting;
+    ["#pauseBtn", "#snapBtn", "#stopBtn"].forEach(id => $(id).disabled = !running);
+    if (!running) $("#pauseBtn").textContent = "Пауза";
+    if (running && !$("#video").getAttribute("src")) $("#video").src = "/stream.mjpg?" + Date.now();
+    $("#empty").hidden = running || !!session; $("#video").hidden = !(running || session);
+    $("#tag").hidden = $("#fps").hidden = !running;
+    if (running) {
+      $("#tagSrc").textContent = s.source;
+      $("#tagTime").textContent = s.camera ? "в реальном времени" : fmt(s.vtime);
+      $("#fps").textContent = `${(s.infer_fps || 0).toFixed(1)} к/с, ${Math.round(s.infer_ms || 0)} мс`;
+      $("#progress").style.width = `${(s.progress || 0) * 100}%`;
+    }
+    $("#nPersons").textContent = s.persons ?? 0; $("#nBags").textContent = s.bags ?? 0; $("#nAlarms").textContent = s.alarm_total ?? 0;
+    renderBags(running ? s.bag_list : []);
+    $("#reportBar").classList.toggle("show", !!s.report);
+    if (s.report) $("#reportLink").href = s.report;
+  } catch (e) { /* сервер перезапускается — попробуем снова */ }
+  setTimeout(poll, 400);
+}
+
+/* ---------- выдвижные панели ---------- */
+function openDrawer(id) { $(id).classList.add("open"); $("#scrim").classList.add("open"); }
+function closeDrawers() { document.querySelectorAll(".drawer").forEach(d => d.classList.remove("open")); $("#scrim").classList.remove("open"); }
+$("#setBtn").onclick = () => openDrawer("#settings");
+$("#histBtn").onclick = async () => {
+  const list = await api("/api/sessions");
+  $("#histList").innerHTML = list.length ? list.map(x => {
+    const s = x.summary || {};
+    const inner = `<b>${esc(x.started || x.name)}</b><span>${esc(x.source)}: тревог ${s.alarms ?? 0}, предупреждений ${s.warnings ?? 0}</span>`;
+    return x.report ? `<a href="${x.report}" target="_blank">${inner}</a>` : `<a>${inner}</a>`;
+  }).join("") : `<p style="color:var(--muted)">Сессий пока нет.</p>`;
+  openDrawer("#history");
+};
+$("#scrim").onclick = closeDrawers;
+document.querySelectorAll("[data-close]").forEach(b => b.onclick = closeDrawers);
+document.addEventListener("keydown", e => { if (e.key === "Escape") { closeDrawers(); $("#lightbox").classList.remove("open"); } });
+
+loadOptions().then(poll).catch(e => toast("Не удалось связаться с сервером: " + e.message, true));
+</script>
+</body>
+</html>

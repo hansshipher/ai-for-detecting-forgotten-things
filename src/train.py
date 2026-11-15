@@ -1,17 +1,5 @@
 #!/usr/bin/env python3
-"""Обучение детектора (обёртка над ultralytics с нашими дефолтами).
-
-Демо-модель weights/best26n_nodc_640.pt этот скрипт не трогает: каждый
-прогон пишется в runs/train/<name>, веса оттуда копируются в weights/
-только вручную и осознанно.
-
-Запуск (из папки src/):
-    python train.py --data ../dataset/12k_merged/data.yaml --name cctv_yolo26n_12k_640
-    python train.py --data ../dataset/data_all.yaml --name finetune_all_640 \
-        --weights ../runs/train/cctv_yolo26n_12k_640/weights/best.pt --epochs 40
-
-Дефолты повторяют прошлые прогоны (65 эпох, batch 32, 640, seed 0).
-"""
+"""Обучение детектора — обёртка над ultralytics с дефолтами проекта."""
 
 import argparse
 import sys

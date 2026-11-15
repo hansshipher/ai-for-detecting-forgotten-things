@@ -1,26 +1,5 @@
 #!/usr/bin/env python3
-"""Сборка объединённого датасета 12k: bag (ручная разметка) + person (учитель).
-
-Что делает:
-
-  1. Читает near-duplicate кластеры из audit_duplicates.py и пересобирает
-     сплиты ЦЕЛЫМИ кластерами. В исходном Roboflow-сплите 1 000 картинок
-     имеют near-duplicate в другом сплите -> метрика завышается.
-  2. Картинки, где есть ручные person-боксы (и их near-duplicate соседи),
-     выводит в holdout: это честный тест, он не попадает в train.
-  3. bag-лейблы берёт из исходного датасета как есть (чистит битые строки),
-     person-лейблы — от COCO-учителя (runs/12k_person_labels).
-  4. Пишет результат в dataset/12k_merged, оригинал не трогает.
-     Картинки не копируются, а хардлинкуются (0 байт на диске).
-
-Запуск (из папки src/):
-    python tools/build_12k_merged.py --dry-run
-    python tools/build_12k_merged.py
-    python tools/build_12k_merged.py --out ../dataset/12k_merged --seed 0
-
-Выход: dataset/12k_merged/{train,valid,test,holdout}/{images,labels},
-       data.yaml, stats.json
-"""
+"""Сборка dataset/12k_merged: bag из ручной разметки, person от COCO-учителя."""
 
 import argparse
 import csv

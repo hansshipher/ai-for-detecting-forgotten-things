@@ -1,23 +1,5 @@
 #!/usr/bin/env python3
-"""Аудит датасета: near-duplicate кадры и пересечения между наборами.
-
-Зачем это нужно:
-
-  1. В CCTV-датасетах соседние кадры почти одинаковы. Если они попадут
-     в train и test, метрика начинает мерить запоминание, а не детекцию.
-     Поэтому считаем dHash (64-бит перцептивный хеш) и склеиваем кадры
-     с Hamming-расстоянием <= --max-dist в один кластер = одну сцену.
-  2. Если картинки из нового датасета пересекаются с videos/ (наши демо-
-     ролики) или с dataset/all, их нельзя пускать в обучение: оценка на
-     демо перестанет быть честной.
-
-Запуск (из папки src/):
-    python tools/audit_duplicates.py --root ../dataset/12k-dataset
-    python tools/audit_duplicates.py --root ../dataset/12k-dataset --videos ../videos
-    python tools/audit_duplicates.py --root ../dataset/12k-dataset --against ../dataset/all/images
-
-Выход: сводка в консоль + JSON/CSV в --out (по умолчанию runs/12k_audit).
-"""
+"""Аудит датасета: near-duplicate кадры и пересечения между наборами."""
 
 import argparse
 import csv

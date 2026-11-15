@@ -1,19 +1,5 @@
 #!/usr/bin/env python3
-"""Собрать честный train: dataset/all без кадров из cctv/valid+test.
-
-Зачем: dataset/all собран из dataset/{train,valid,test}, а исходный экспорт
-dataset/cctv содержит те же кадры. Его valid+test — единственный набор, где
-сплиты не пересекаются по исходным кадрам (0 общих префиксов). Но 155 из 168
-этих кадров лежат в dataset/all, поэтому любая модель, обученная на all,
-holdout уже видела.
-
-Скрипт копирует all, выбрасывая все копии кадров, чьи префиксы есть в
-cctv/valid или cctv/test, и пишет data_all_clean.yaml с val/test на cctv.
-
-Запуск (из папки src/):
-    python tools/make_clean_split.py
-    python tools/make_clean_split.py --force   # перезаписать all_clean
-"""
+"""Честный train: dataset/all без кадров, попавших в cctv/valid+test."""
 
 import argparse
 import re
